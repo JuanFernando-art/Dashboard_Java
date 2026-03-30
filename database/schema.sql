@@ -1,4 +1,4 @@
--- create database estoque_db;
+create database if not exists estoque_db;
 
 USE estoque_db;
 
@@ -10,5 +10,8 @@ CREATE TABLE produtos (
                           preco_venda DOUBLE,
                           quantidade INT
 );
+
+INSERT INTO produtos (nome, categoria, preco_custo, preco_venda, quantidade) VALUES ('Produto Teste', 10, 50.00, 60.00, 12);
+
 select*from produtos;
 
