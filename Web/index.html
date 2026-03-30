@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestor ERP - Microempresas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="sidebar">
+    <h2>📊 Gestor ERP</h2>
+    <nav>
+        <a href="#" class="active">Estoque</a>
+        <a href="#">Vendas</a>
+        <a href="#">Relatórios</a>
+    </nav>
+</div>
+
+<main class="content">
+    <header>
+        <h1>Controle de Estoque</h1>
+        <button class="btn-primary">+ Novo Produto</button>
+    </header>
+
+    <section class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome do Produto</th>
+                <th>Qtd.</th>
+                <th>Preço Venda</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody id="tabela-corpo">
+            </tbody>
+        </table>
+    </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
