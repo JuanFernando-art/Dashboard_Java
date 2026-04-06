@@ -1,4 +1,4 @@
-create database if not exists estoque_db;
+-- create database estoque_db;
 
 USE estoque_db;
 
@@ -11,7 +11,18 @@ CREATE TABLE produtos (
                           quantidade INT
 );
 
-INSERT INTO produtos (nome, categoria, preco_custo, preco_venda, quantidade) VALUES ('Produto Teste', 10, 50.00, 60.00, 12);
+ALTER TABLE produtos ADD COLUMN quantidade_inicial INT DEFAULT 100;
+UPDATE produtos SET quantidade_inicial = quantidade WHERE quantidade_inicial IS NULL;
+ALTER TABLE produtos MODIFY COLUMN quantidade_inicial INT NOT NULL;
+
+-- 1. Desativa temporariamente o modo de segurança
+SET SQL_SAFE_UPDATES = 0;
+
+-- 2. Atualiza a capacidade máxima para ser igual à quantidade atual para todos os produtos
+UPDATE produtos SET quantidade_inicial = quantidade;
+
+-- 3. Reativa o modo de segurança (boa prática)
+SET SQL_SAFE_UPDATES = 1;
 
 select*from produtos;
 
