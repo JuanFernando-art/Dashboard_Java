@@ -18,8 +18,22 @@
 <main class="content">
     <header>
         <h1>Controle de Estoque</h1>
-        <button class="btn-primary">+ Novo Produto</button>
+        <button class="btn-primary" onclick="abrirModal()">+ Novo Produto</button>
     </header>
+    <div class="controle-topo">
+        <div class="busca-wrapper">
+            <i class="fas fa-search"></i> <input type="text" id="inputBusca" placeholder="Pesquisar produto ou categoria..." onkeyup="filtrarTabela()">
+        </div>
+
+        <div class="filtro-wrapper">
+            <label for="filtroEstoque">Filtrar Estoque:</label>
+            <select id="filtroEstoque" onchange="filtrarTabela()">
+                <option value="todos">📊 Todos os níveis</option>
+                <option value="alerta">⚠️ Abaixo de 50% (Alerta)</option>
+                <option value="critico">🚨 Abaixo de 20% (Crítico)</option>
+            </select>
+        </div>
+    </div>
 
     <section class="table-container">
         <table>
@@ -27,6 +41,7 @@
             <tr>
                 <th>ID</th>
                 <th>Nome do Produto</th>
+                <th>Categoria</th>
                 <th>Qtd.</th>
                 <th>Preço Venda</th>
                 <th>Ações</th>
@@ -37,6 +52,48 @@
         </table>
     </section>
 </main>
+
+<div id="modalProduto" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModal()">&times;</span>
+        <h2 id="modalTitulo" style="margin-bottom: 20px;">Cadastrar Produto</h2>
+
+        <form id="formProduto">
+            <input type="hidden" id="prodId">
+
+            <label>Nome do Produto:</label>
+            <input type="text" id="nome" required placeholder="Ex: Mouse Gamer">
+
+            <label>Categoria:</label>
+            <input type="text" id="categoria" placeholder="Ex: Periféricos">
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label>Preço Custo:</label>
+                    <input type="number" step="0.01" id="precoCusto">
+                </div>
+                <div style="flex: 1;">
+                    <label>Preço Venda:</label>
+                    <input type="number" step="0.01" id="precoVenda">
+                </div>
+            </div>
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label>Quantidade em Estoque:</label>
+                    <input type="number" id="quantidade" required oninput="validarLimite()">
+                </div>
+                <div style="flex: 1;">
+                    <label>Capacidade Máxima (100%):</label>
+                    <input type="number" id="quantidadeInicial" required oninput="validarLimite()">
+                </div>
+            </div>
+            <small id="erroLimite" style="color: red; display: none;">A quantidade não pode exceder o limite!</small>
+
+            <button type="submit" class="btn-save">Salvar no Estoque</button>
+        </form>
+    </div>
+</div>
 
 <script src="script.js"></script>
 </body>

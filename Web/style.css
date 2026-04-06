@@ -15,3 +15,140 @@ table { width: 100%; border-collapse: collapse; }
 th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: #555; }
 td { padding: 12px; border-bottom: 1px solid #eee; }
 tr:hover { background: #f9f9f9; }
+
+.modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 30px;        /* Aumentei o espaço interno */
+    border-radius: 12px;
+    width: 450px;         /* Aumentei um pouco a largura */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3); /* Sombra para dar profundidade */
+}
+
+/* Garante que os inputs não fiquem colados uns nos outros */
+#formProduto label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+#formProduto input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box; /* Fundamental para o padding não "empurrar" o input pra fora */
+}
+.close { float: right; cursor: pointer; font-size: 24px; }
+form input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+.btn-save { width: 100%; background: #28a745; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+.row { display: flex; gap: 10px; }
+
+/* Deixa os botões da tabela alinhados e bonitos */
+td button {
+    padding: 5px 10px;
+    margin: 0 2px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+}
+
+td button:first-child { background-color: #f8f9fa; color: #333; } /* Editar */
+td button:last-child { background-color: #e74a3b; color: white; border: none; }  /* Excluir */
+
+/* Linha normal, mas com transição suave */
+tr { border-left: 5px solid transparent; transition: 0.3s; }
+
+/* 50% ou menos: Amarelo */
+.estoque-alerta {
+    background-color: #fffde7; /* Fundo levemente amarelado */
+    border-left: 8px solid #f1c40f;
+}
+
+/* 20% ou menos: Vermelho */
+.estoque-critico {
+    background-color: #ffebee; /* Fundo levemente avermelhado */
+    border-left: 8px solid #e74c3c;
+    color: #c0392b;
+    font-weight: bold;
+}
+
+.estoque-alerta { border-left: 10px solid #f1c40f !important; background-color: #fffde7; }
+.estoque-critico { border-left: 10px solid #e74c3c !important; background-color: #ffebee; }
+
+/* Container principal dos filtros */
+.controle-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+/* Estilo da Barra de Busca */
+.busca-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.busca-wrapper input {
+    width: 95%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.busca-wrapper input:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 8px rgba(74, 144, 226, 0.2);
+}
+
+/* Estilo do Seletor de Filtro */
+.filtro-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filtro-wrapper label {
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap;
+}
+
+.filtro-wrapper select {
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 14px;
+    outline: none;
+}
+
+.filtro-wrapper select:focus {
+    border-color: #4a90e2;
+}
+
+/* Ajuste na Tabela para combinar */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px; /* Dá um espaçamento entre as linhas */
+}
+
+thead th {
+    color: #888;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 10px;
+    text-align: left;
+}

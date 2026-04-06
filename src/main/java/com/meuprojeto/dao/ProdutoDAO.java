@@ -11,7 +11,7 @@ import java.util.List;
 public class ProdutoDAO {
 
     public void salvar(Produto produto) {
-        String sql = "INSERT INTO produtos (nome, categoria, preco_custo, preco_venda, quantidade) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO produtos (nome, categoria, preco_custo, preco_venda, quantidade, quantidade_inicial) VALUES (?, ?, ?, ?, ?, ?)";
 
         Connection conn = null;
         PreparedStatement pstm = null;
@@ -25,7 +25,7 @@ public class ProdutoDAO {
             pstm.setDouble(3, produto.getPrecoCusto());
             pstm.setDouble(4, produto.getPrecoVenda());
             pstm.setInt(5, produto.getQuantidade());
-
+            pstm.setInt(6, produto.getQuantidadeInicial());
             pstm.execute();
             System.out.println("Produto salvo com sucesso no MySQL!");
 
@@ -58,16 +58,14 @@ public class ProdutoDAO {
             // Enquanto houver uma próxima linha no banco...
             while (rset.next()) {
                 Produto p = new Produto();
-
-                // Pega o que está na coluna do MySQL e joga no objeto Java
                 p.setId(rset.getInt("id"));
                 p.setNome(rset.getString("nome"));
                 p.setCategoria(rset.getString("categoria"));
-                p.setPrecoCusto(rset.getDouble("preco_custo"));
-                p.setPrecoVenda(rset.getDouble("preco_venda"));
                 p.setQuantidade(rset.getInt("quantidade"));
-
-                produtos.add(p); // Adiciona o produto preenchido na lista
+                p.setQuantidadeInicial(rset.getInt("quantidade_inicial"));
+                p.setPrecoVenda(rset.getDouble("preco_venda"));
+                p.setPrecoCusto(rset.getDouble("preco_custo"));
+                produtos.add(p);
             }
         } catch (Exception e) {
             System.out.println("Erro ao listar produtos: " + e.getMessage());
@@ -105,7 +103,7 @@ public class ProdutoDAO {
     }
 
     public void atualizar(Produto produto) {
-        String sql = "UPDATE produtos SET nome = ?, categoria = ?, preco_custo = ?, preco_venda = ?, quantidade = ? WHERE id = ?";
+        String sql = "UPDATE produtos SET nome=?, categoria=?, preco_custo=?, preco_venda=?, quantidade=?, quantidade_inicial=? WHERE id=?";
 
         Connection conn = null;
         PreparedStatement pstm = null;
@@ -119,7 +117,8 @@ public class ProdutoDAO {
             pstm.setDouble(3, produto.getPrecoCusto());
             pstm.setDouble(4, produto.getPrecoVenda());
             pstm.setInt(5, produto.getQuantidade());
-            pstm.setInt(6, produto.getId());
+            pstm.setInt(6, produto.getQuantidadeInicial());
+            pstm.setInt(7, produto.getId());
 
             int linhasAfetadas = pstm.executeUpdate(); // Use executeUpdate para saber o resultado
 

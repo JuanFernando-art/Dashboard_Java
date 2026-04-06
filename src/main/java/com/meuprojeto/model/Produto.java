@@ -7,6 +7,7 @@ public class Produto {
     private double precoCusto;
     private double precoVenda;
     private int quantidade;
+    private int quantidadeInicial;
 
     // Construtor vazio (importante para o Java)
     public Produto() {
@@ -30,4 +31,7 @@ public class Produto {
 
     public int getQuantidade() { return quantidade; }
     public void setQuantidade(int quantidade) { this.quantidade = quantidade; }
+
+    public int getQuantidadeInicial() { return quantidadeInicial; }
+    public void setQuantidadeInicial(int quantidadeInicial) { this.quantidadeInicial = quantidadeInicial; }
 }
