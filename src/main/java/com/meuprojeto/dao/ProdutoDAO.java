@@ -134,4 +134,26 @@ public class ProdutoDAO {
                 // ... fechar conexões ...
         }
     }
+    public void baixarEstoque(int id, int quantidadeVendida) {
+        String sql = "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ? AND quantidade >= ?";
+        // O 'AND quantidade >= ?' impede que o estoque fique negativo!
+    }
+    public void subtrairEstoque(int id, int qtdVendida) {
+        String sql = "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ? AND quantidade >= ?";
+
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql)) {
+
+            pstm.setInt(1, qtdVendida);
+            pstm.setInt(2, id);
+            pstm.setInt(3, qtdVendida); // Garante que não baixe se não houver estoque suficiente
+
+            int linhasAfetadas = pstm.executeUpdate();
+            if (linhasAfetadas == 0) {
+                System.out.println("Aviso: Estoque insuficiente para o produto ID: " + id);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

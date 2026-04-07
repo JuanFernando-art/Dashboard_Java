@@ -140,3 +140,162 @@ function validarLimite() {
         erro.style.display = "none";
     }
 }
+
+//Lógica do carrinho de compras
+
+let carrinho = [];
+let todosOsProdutos = []; // Para busca rápida no PDV
+
+// Abre o Modal de Venda e limpa o carrinho anterior
+async function abrirModalPDV() {
+    document.getElementById('modalPDV').style.display = 'block';
+    carrinho = [];
+    renderizarCarrinho();
+
+    // Busca produtos atualizados do estoque para o vendedor escolher
+    const resp = await fetch('http://localhost:7000/api/produtos');
+    todosOsProdutos = await resp.json();
+    renderizarListaProdutosPDV(todosOsProdutos);
+}
+
+// Renderiza a lista de produtos disponíveis para clicar
+function renderizarListaProdutosPDV(lista) {
+    const div = document.getElementById('listaProdutosPDV');
+    div.innerHTML = lista.map(p => `
+        <div class="item-pdv" onclick='adicionarAoCarrinho(${JSON.stringify(p)})'>
+            <span>${p.nome}</span>
+            <span>R$ ${p.precoVenda.toFixed(2)} | Est: ${p.quantidade}</span>
+        </div>
+    `).join('');
+}
+
+// Adiciona o item selecionado ao carrinho
+function adicionarAoCarrinho(produto) {
+    const itemNoCarrinho = carrinho.find(item => item.id === produto.id);
+
+    if (itemNoCarrinho) {
+        if (itemNoCarrinho.quantidadeCarrinho < produto.quantidade) {
+            itemNoCarrinho.quantidadeCarrinho++;
+        } else {
+            alert("Limite de estoque atingido!");
+        }
+    } else {
+        if (produto.quantidade > 0) {
+            carrinho.push({ ...produto, quantidadeCarrinho: 1 });
+        } else {
+            alert("Produto sem estoque!");
+        }
+    }
+    renderizarCarrinho();
+}
+
+async function carregarHistoricoVendas() {
+    try {
+        const resposta = await fetch('http://localhost:7000/api/vendas');
+        const vendas = await resposta.json();
+
+        const corpoVendas = document.getElementById('corpoVendas');
+        corpoVendas.innerHTML = "";
+
+        vendas.forEach(v => {
+            const linha = `
+                <tr>
+                    <td>${v.dataVenda}</td>
+                    <td>${v.produtosVendidos}</td>
+                    <td>R$ ${v.total.toFixed(2)}</td>
+                </tr>
+            `;
+            corpoVendas.innerHTML += linha;
+        });
+    } catch (erro) {
+        console.error("Erro ao carregar vendas:", erro);
+    }
+}
+// Atualiza o visual do carrinho e o valor total
+function renderizarCarrinho() {
+    const container = document.getElementById('itensCarrinho');
+    let totalVenda = 0;
+
+    container.innerHTML = carrinho.map((item, index) => {
+        totalVenda += item.precoVenda * item.quantidadeCarrinho;
+        return `
+            <div class="linha-carrinho">
+                <span>${item.nome} x${item.quantidadeCarrinho}</span>
+                <span>R$ ${(item.precoVenda * item.quantidadeCarrinho).toFixed(2)}</span>
+                <button onclick="removerDoCarrinho(${index})">🗑️</button>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('totalVenda').innerText = `Total: R$ ${totalVenda.toFixed(2)}`;
+}
+
+function removerDoCarrinho(index) {
+    carrinho.splice(index, 1);
+    renderizarCarrinho();
+}
+async function finalizarVenda() {
+    if (carrinho.length === 0) return alert("Carrinho vazio!");
+
+    // 1. Enviar para o Java salvar a Venda
+    // 2. Para cada item no carrinho, chamar a rota PUT do Java para diminuir o estoque
+    for (let item of carrinho) {
+        item.quantidade = item.quantidadeOriginalDoBanco - item.quantidade;
+        // Aqui chamamos o seu ProdutoDAO.atualizar() via fetch
+    }
+
+    alert("Venda realizada com sucesso!");
+    carrinho = [];
+    fecharModalPDV();
+    carregarProdutos(); // Atualiza a tabela de estoque
+}
+
+function mostrarProdutos() {
+    document.getElementById('secaoProdutos').style.display = 'block';
+    document.getElementById('secaoVendas').style.display = 'none';
+}
+
+function mostrarVendas() {
+    document.getElementById('secaoProdutos').style.display = 'none';
+    document.getElementById('secaoVendas').style.display = 'block';
+    carregarHistoricoVendas(); // Carrega os registros do banco
+}
+
+async function finalizarVenda() {
+    if (carrinho.length === 0) return alert("O carrinho está vazio!");
+
+    const totalVenda = carrinho.reduce((acc, item) => acc + (item.precoVenda * item.quantidadeCarrinho), 0);
+    const listaNomes = carrinho.map(item => `${item.nome} (${item.quantidadeCarrinho})`).join(", ");
+
+    try {
+        // 1. Salva o registro da venda no histórico
+        await fetch('http://localhost:7000/api/vendas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ total: totalVenda, produtosVendidos: listaNomes })
+        });
+
+        // 2. Loop para baixar o estoque de cada produto vendido
+        for (const item of carrinho) {
+            await fetch('http://localhost:7000/api/produtos/subtrair', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: item.id, quantidadeVendida: item.quantidadeCarrinho })
+            });
+        }
+
+        alert("Venda realizada com sucesso!");
+
+        // 3. O Pulo do Gato: Limpar e Atualizar
+        carrinho = [];
+        document.getElementById('modalPDV').style.display = 'none';
+
+        // Essas duas funções garantem que a tela de produtos mostre os novos números
+        await carregarProdutos();
+        mostrarProdutos(); // Volta para a tela principal para o vendedor ver o resultado
+
+    } catch (error) {
+        console.error("Erro na venda:", error);
+        alert("Houve um erro ao processar a venda.");
+    }
+}

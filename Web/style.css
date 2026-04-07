@@ -152,3 +152,19 @@ thead th {
     padding: 10px;
     text-align: left;
 }
+.item-pdv {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.item-pdv:hover { background: #f0f7ff; }
+
+.linha-carrinho {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed #ccc;
+}

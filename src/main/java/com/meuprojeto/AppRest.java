@@ -1,9 +1,13 @@
 package com.meuprojeto;
 
+import com.meuprojeto.dao.VendaDAO;
+import com.meuprojeto.model.Venda;
 import io.javalin.Javalin;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
 import io.javalin.http.staticfiles.Location;
+
+import java.util.Map;
 
 public class AppRest {
     public static void main(String[] args) {
@@ -64,6 +68,36 @@ public class AppRest {
                 }
             }
         });
+
+        // Rota para LISTAR o histórico de vendas
+        app.get("/api/vendas", ctx -> {
+            VendaDAO vendaDAO = new VendaDAO();
+            ctx.json(vendaDAO.listar());
+        });
+
+        // Rota para SALVAR uma nova venda
+        app.post("/api/vendas", ctx -> {
+            Venda venda = ctx.bodyAsClass(Venda.class);
+            VendaDAO vendaDAO = new VendaDAO();
+            vendaDAO.salvar(venda);
+            ctx.status(201).result("Venda realizada com sucesso!");
+        });
+
+        //rota para avisar que um produto foi vendido.
+        app.post("/api/produtos/subtrair", ctx -> {
+            // Pegamos o corpo da requisição como um mapa genérico
+            Map<String, Object> dados = ctx.bodyAsClass(Map.class);
+
+            // Convertemos para os tipos corretos (usando Number para evitar erro de Double/Integer)
+            int id = ((Number) dados.get("id")).intValue();
+            int qtd = ((Number) dados.get("quantidadeVendida")).intValue();
+
+            ProdutoDAO produtoDao = new ProdutoDAO();
+            produtoDao.subtrairEstoque(id, qtd);
+
+            ctx.status(200).result("Estoque atualizado");
+        });
+
 
         System.out.println("✅ SERVIDOR ON: http://localhost:7000/index.html");
     }
