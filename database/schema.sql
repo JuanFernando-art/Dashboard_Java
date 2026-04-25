@@ -82,7 +82,7 @@ CREATE TABLE estoque (
 );
 
 
-
+-- testes
 
 
 -- ÍNDICES: Para otimizar a barra de pesquisa (Nome, Categoria, ID)
