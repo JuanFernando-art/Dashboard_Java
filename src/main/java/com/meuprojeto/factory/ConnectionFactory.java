@@ -2,38 +2,61 @@ package com.meuprojeto.factory;
 
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
 
+/**
+ * CLASSE: ConnectionFactory
+ * FUNÇÃO: É o "Portal de Conexão". Sem esta classe, o sistema não acessa o MySQL.
+ * EXPLICAÇÃO PARA O FRONT-END: Esta classe guarda as credenciais do banco de dados
+ * e fornece a conexão ativa para que os DAOs possam ler e gravar informações.
+ */
 public class ConnectionFactory {
+
+    // Dados de acesso ao seu MySQL Local
     private static final String USERNAME = "root";
-    private static final String PASSWORD = "Game@9847";
+    private static final String PASSWORD = "Game@9847"; // Sua senha do banco
+    // URL: Aponta para o endereço do banco (localhost) e o nome da base (estoque_db)
     private static final String DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db";
 
+    /**
+     * MÉTODO: criarConexao
+     * OBJETIVO: Tentar abrir uma conexão com o MySQL usando o Driver JDBC.
+     * @return Uma conexão ativa pronta para ser usada pelos DAOs.
+     */
     public static Connection criarConexao() throws Exception {
+        // Carrega o Driver do MySQL na memória do Java
         Class.forName("com.mysql.cj.jdbc.Driver");
+
+        // Tenta estabelecer a ligação usando as credenciais acima
         return DriverManager.getConnection(DATABASE_URL, USERNAME, PASSWORD);
     }
 
+    /**
+     * MÉTODO MAIN (Sandbox de Testes):
+     * OBJETIVO: Este método não roda durante o uso do site, ele serve apenas para
+     * você, desenvolvedor, testar as funções do ProdutoDAO sem precisar abrir o navegador.
+     */
     public static void main(String[] args) {
         ProdutoDAO dao = new ProdutoDAO();
 
-        // 1. CRIAR
+        // --- TESTE 1: CRIAR PRODUTO ---
         Produto p1 = new Produto();
         p1.setNome("Mouse Gamer");
         p1.setPrecoCusto(50.00);
         p1.setPrecoVenda(120.00);
         p1.setQuantidade(20);
 
-        // Agora usamos IDs (Certifique-se que esses IDs existem no seu Banco!)
-        p1.setIdCategoria(1);      // ID da categoria 'Periféricos' no seu MySQL
-        p1.setIdEmpreendimento(1); // ID da 'Oficina' no seu MySQL
+        // ATENÇÃO: Estes IDs devem existir nas tabelas 'categoria' e 'empreendimento' do seu MySQL
+        p1.setIdCategoria(1);
+        p1.setIdEmpreendimento(1);
 
         dao.salvar(p1);
+        System.out.println("✅ Teste de Cadastro finalizado.");
 
-        // 2. LISTAR (Agora precisamos passar o ID da loja que queremos ver)
+        // --- TESTE 2: LISTAR PRODUTOS ---
+        // Passamos o ID 1 para simular a visualização da Loja 1
         System.out.println("--- LISTA DA LOJA 1 ---");
         List<Produto> lista = dao.listar(1);
 
@@ -43,7 +66,8 @@ public class ConnectionFactory {
             idEncontrado = p.getId();
         }
 
-        // 3. ATUALIZAR
+        // --- TESTE 3: ATUALIZAR PRODUTO ---
+        // Se a lista não estiver vazia, pegamos o último ID para testar a edição
         if (idEncontrado > 0) {
             Produto pEditado = new Produto();
             pEditado.setId(idEncontrado);
@@ -52,10 +76,10 @@ public class ConnectionFactory {
             pEditado.setPrecoVenda(150.00);
             pEditado.setQuantidade(15);
             pEditado.setIdCategoria(1);
-            pEditado.setIdEmpreendimento(1); // Precisamos manter o vínculo da loja
+            pEditado.setIdEmpreendimento(1);
 
             dao.atualizar(pEditado);
-            System.out.println("Produto ID " + idEncontrado + " atualizado!");
+            System.out.println("✅ Produto ID " + idEncontrado + " atualizado com sucesso!");
         }
     }
 }

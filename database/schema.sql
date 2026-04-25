@@ -128,3 +128,16 @@ USE estoque_db;
 INSERT IGNORE INTO categoria (nome) VALUES ('Geral');
 INSERT IGNORE INTO categoria (nome) VALUES ('Periféricos');
 INSERT IGNORE INTO categoria (nome) VALUES ('Hardware');
+
+USE estoque_db;
+
+-- Adiciona a coluna de vínculo
+ALTER TABLE categoria ADD COLUMN idEmpreendimento INT;
+
+-- Cria a chave estrangeira
+ALTER TABLE categoria
+    ADD CONSTRAINT fk_categoria_empreendimento
+        FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento);
+
+-- Opcional: Se quiser que as categorias atuais pertençam à Loja 1 para não dar erro:
+UPDATE categoria SET idEmpreendimento = 1 WHERE idEmpreendimento IS NULL;

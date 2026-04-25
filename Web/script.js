@@ -298,24 +298,20 @@ async function finalizarVenda() {
         console.error("Erro na venda:", error);
         alert("Houve um erro ao processar a venda.");
     }
-    async function carregarCategorias() {
-        try {
-            const resposta = await fetch('http://localhost:7000/api/categorias');
-            const categorias = await resposta.json();
-            const select = document.getElementById('idCategoria');
+    async function carregarCategorias(idEmpreendimento) {
+        // Agora a URL inclui o ID do empreendimento atual
+        const resposta = await fetch(`http://localhost:7000/api/categorias/${idEmpreendimento}`);
+        const categorias = await resposta.json();
 
-            // Mantém apenas a primeira opção (Selecione...) e limpa o resto
-            select.innerHTML = '<option value="">Selecione uma categoria...</option>';
+        const select = document.getElementById('idCategoria');
+        select.innerHTML = '<option value="">Selecione uma categoria...</option>';
 
-            categorias.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id; // Aqui o valor será o ID (1, 2, 3...)
-                option.textContent = cat.nome; // Aqui o texto será "Geral", "Periféricos", etc.
-                select.appendChild(option);
-            });
-        } catch (erro) {
-            console.error("Erro ao carregar categorias:", erro);
-        }
+        categorias.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.nome;
+            select.appendChild(option);
+        });
     }
 
 // Chame essa função quando a página carregar
