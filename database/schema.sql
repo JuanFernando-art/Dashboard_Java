@@ -141,3 +141,9 @@ ALTER TABLE categoria
 
 -- Opcional: Se quiser que as categorias atuais pertençam à Loja 1 para não dar erro:
 UPDATE categoria SET idEmpreendimento = 1 WHERE idEmpreendimento IS NULL;
+
+DELETE FROM itemVenda;
+DELETE FROM venda;
+DELETE FROM estoque;
+DELETE FROM produto;
+-- Deixe apenas 1 empreendimento e 1 categoria para começar
