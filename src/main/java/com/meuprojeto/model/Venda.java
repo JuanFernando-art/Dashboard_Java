@@ -1,3 +1,4 @@
+// consiste em um corpo, algo como um esqueleto do que deve ser mandado para o banco
 package com.meuprojeto.model;
 
 public class Venda {

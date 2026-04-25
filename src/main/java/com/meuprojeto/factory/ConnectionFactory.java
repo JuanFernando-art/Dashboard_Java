@@ -20,47 +20,42 @@ public class ConnectionFactory {
     public static void main(String[] args) {
         ProdutoDAO dao = new ProdutoDAO();
 
-        // 1. CRIAR (Para garantir que temos algo no banco)
+        // 1. CRIAR
         Produto p1 = new Produto();
         p1.setNome("Mouse Gamer");
-        p1.setCategoria("Periféricos");
         p1.setPrecoCusto(50.00);
         p1.setPrecoVenda(120.00);
         p1.setQuantidade(20);
+
+        // Agora usamos IDs (Certifique-se que esses IDs existem no seu Banco!)
+        p1.setIdCategoria(1);      // ID da categoria 'Periféricos' no seu MySQL
+        p1.setIdEmpreendimento(1); // ID da 'Oficina' no seu MySQL
+
         dao.salvar(p1);
 
-        // 2. LISTAR (Para descobrir qual ID o MySQL deu para ele)
-        System.out.println("--- LISTA APÓS CADASTRO ---");
-        List<Produto> lista = dao.listar();
-        int idEncontrado = 0;
+        // 2. LISTAR (Agora precisamos passar o ID da loja que queremos ver)
+        System.out.println("--- LISTA DA LOJA 1 ---");
+        List<Produto> lista = dao.listar(1);
 
+        int idEncontrado = 0;
         for (Produto p : lista) {
-            System.out.println("ID: " + p.getId() + " | Nome: " + p.getNome());
-            idEncontrado = p.getId(); // Pegamos o último ID gerado
+            System.out.println("ID: " + p.getId() + " | Nome: " + p.getNome() + " | Qtd: " + p.getQuantidade());
+            idEncontrado = p.getId();
         }
 
-        // 3. ATUALIZAR (Usando o ID que acabamos de descobrir)
+        // 3. ATUALIZAR
         if (idEncontrado > 0) {
             Produto pEditado = new Produto();
             pEditado.setId(idEncontrado);
-            pEditado.setNome("Mouse Gamer Pro RGB"); // Nome novo
-            pEditado.setCategoria("Periféricos");
+            pEditado.setNome("Mouse Gamer Pro RGB");
             pEditado.setPrecoCusto(55.00);
             pEditado.setPrecoVenda(150.00);
             pEditado.setQuantidade(15);
+            pEditado.setIdCategoria(1);
+            pEditado.setIdEmpreendimento(1); // Precisamos manter o vínculo da loja
 
             dao.atualizar(pEditado);
             System.out.println("Produto ID " + idEncontrado + " atualizado!");
         }
-
-        // 4. LISTAR NOVAMENTE (Para ver a mudança)
-        System.out.println("\n--- LISTA FINAL ATUALIZADA ---");
-        for (Produto p : dao.listar()) {
-            System.out.println("Nome: " + p.getNome() + " | Venda: R$ " + p.getPrecoVenda());
-        }
-
-        // OPCIONAL: Se quiser deixar o banco limpo no final, descomente a linha abaixo:
-        // dao.deletar(idEncontrado);
     }
-
 }

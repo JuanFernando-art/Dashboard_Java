@@ -1,3 +1,4 @@
+// é o que manda as informações para o banco, é o que faz o banco ler, salvar, listar e atualizar 
 package com.meuprojeto.dao;
 
 import com.meuprojeto.factory.ConnectionFactory;
@@ -11,7 +12,7 @@ import java.util.List;
 public class VendaDAO {
 
     public void salvar(Venda venda) {
-        String sql = "INSERT INTO vendas (total, produtos_vendidos) VALUES (?, ?)";
+        String sql = "INSERT INTO venda (total, produtos_vendidos) VALUES (?, ?)";
         Connection conn = null;
         PreparedStatement pstm = null;
 
@@ -30,7 +31,7 @@ public class VendaDAO {
     }
 
     public List<Venda> listar() {
-        String sql = "SELECT * FROM vendas ORDER BY data_venda DESC";
+        String sql = "SELECT * FROM venda ORDER BY data_venda DESC";
         List<Venda> vendas = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstm = null;

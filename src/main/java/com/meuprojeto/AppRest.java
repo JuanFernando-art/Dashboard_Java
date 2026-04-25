@@ -1,12 +1,16 @@
 package com.meuprojeto;
 
+import com.meuprojeto.dao.CategoriaDAO;
 import com.meuprojeto.dao.VendaDAO;
+import com.meuprojeto.factory.ConnectionFactory;
 import com.meuprojeto.model.Venda;
 import io.javalin.Javalin;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
 import io.javalin.http.staticfiles.Location;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.Map;
 
 public class AppRest {
@@ -21,15 +25,19 @@ public class AppRest {
         // --- 1. ROTA DE LISTAGEM (GET) ---
         // Retorna todos os produtos do MySQL em formato JSON para o site
         app.get("/api/produtos", ctx -> {
-            ctx.json(dao.listar());
+            // Busca os produtos da Loja 1 por padrão
+            ctx.json(dao.listar(1));
         });
 
-        // --- 2. ROTA DE CADASTRO (POST) ---
-        // Recebe os dados do formulário do site e salva no banco
         app.post("/api/produtos", ctx -> {
-            Produto p = ctx.bodyAsClass(Produto.class); // Transforma o JSON em Objeto Java
+            Produto p = ctx.bodyAsClass(Produto.class);
+            // Se o Front não mandar a loja, assume a Loja 1
+            if (p.getIdEmpreendimento() == 0) p.setIdEmpreendimento(1);
+            // Se não mandar categoria, assume a Categoria 1 (Geral)
+            if (p.getIdCategoria() == 0) p.setIdCategoria(1);
+
             dao.salvar(p);
-            ctx.status(201).result("Produto cadastrado com sucesso!");
+            ctx.status(201).result("Cadastrado com sucesso!");
         });
 
         // --- 3. ROTA DE EXCLUSÃO (DELETE) ---
@@ -51,22 +59,12 @@ public class AppRest {
         // --- 5. ROTA DE VENDA (BAIXA DE ESTOQUE) ---
         // Essa era a função principal do Kotlin: subtrair 1 da quantidade
         app.post("/api/produtos/venda/{id}", ctx -> {
-            int id = Integer.parseInt(ctx.pathParam("id"));
+            int idProd = Integer.parseInt(ctx.pathParam("id"));
+            int idEmp = 1; // Simulação de empreendimento logado
 
-            // Lógica: Buscamos a lista, achamos o produto pelo ID e reduzimos 1
-            // (Em um sistema maior, faríamos uma busca direta por ID no DAO)
-            for (Produto p : dao.listar()) {
-                if (p.getId() == id) {
-                    if (p.getQuantidade() > 0) {
-                        p.setQuantidade(p.getQuantidade() - 1);
-                        dao.atualizar(p); // Salva a nova quantidade no banco
-                        ctx.result("Venda realizada!");
-                    } else {
-                        ctx.status(400).result("Erro: Estoque zerado!");
-                    }
-                    break;
-                }
-            }
+            // Usamos o método novo que já trata a lógica de banco
+            dao.subtrairEstoque(idProd, 1, idEmp);
+            ctx.result("Venda realizada!");
         });
 
         // Rota para LISTAR o histórico de vendas
@@ -85,19 +83,44 @@ public class AppRest {
 
         //rota para avisar que um produto foi vendido.
         app.post("/api/produtos/subtrair", ctx -> {
-            // Pegamos o corpo da requisição como um mapa genérico
             Map<String, Object> dados = ctx.bodyAsClass(Map.class);
 
-            // Convertemos para os tipos corretos (usando Number para evitar erro de Double/Integer)
             int id = ((Number) dados.get("id")).intValue();
             int qtd = ((Number) dados.get("quantidadeVendida")).intValue();
 
-            ProdutoDAO produtoDao = new ProdutoDAO();
-            produtoDao.subtrairEstoque(id, qtd);
+            // Pegamos o ID do empreendimento enviado pelo Front-end (Script.js)
+            // Se o JS ainda não enviar, coloque um valor padrão para não dar erro:
+            int idEmp = dados.containsKey("idEmpreendimento") ?
+                    ((Number) dados.get("idEmpreendimento")).intValue() : 1;
 
+            dao.subtrairEstoque(id, qtd, idEmp);
             ctx.status(200).result("Estoque atualizado");
         });
 
+        // Rota para o Front-end preencher o Dropdown de Categorias
+        app.get("/api/categorias", ctx -> {
+            CategoriaDAO catDao = new CategoriaDAO();
+            ctx.json(catDao.listar());
+        });
+
+// Rota para listar os Empreendimentos (Lojas) do usuário
+        app.post("/api/empreendimentos", ctx -> {
+            // Recebe Nome e CNPJ do Front-end
+            Map<String, String> dados = ctx.bodyAsClass(Map.class);
+            String nome = dados.get("nome");
+            String cnpj = dados.get("cnpj");
+
+            // Lógica de salvamento direto (ou via DAO)
+            try (Connection conn = ConnectionFactory.criarConexao();
+                 PreparedStatement pstm = conn.prepareStatement("INSERT INTO empreendimento (nome, CNPJ) VALUES (?, ?)")) {
+                pstm.setString(1, nome);
+                pstm.setString(2, cnpj);
+                pstm.execute();
+                ctx.status(201).result("Empreendimento criado com sucesso!");
+            } catch (Exception e) {
+                ctx.status(500).result("Erro ao criar: " + e.getMessage());
+            }
+        });
 
         System.out.println("✅ SERVIDOR ON: http://localhost:7000/index.html");
     }

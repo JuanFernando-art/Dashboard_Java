@@ -81,13 +81,13 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
     const produto = {
         nome: document.getElementById('nome').value,
-        categoria: document.getElementById('categoria').value,
+        idCategoria: parseInt(document.getElementById('categoria').value), // O select deve retornar o ID (1, 2, 3...)
+        idEmpreendimento: 1, // Fixe em 1 por enquanto, como no AppRest
         precoCusto: parseFloat(document.getElementById('precoCusto').value),
         precoVenda: parseFloat(document.getElementById('precoVenda').value),
         quantidade: parseInt(document.getElementById('quantidade').value),
-        quantidadeInicial: parseInt(document.getElementById('quantidadeInicial').value) // <--- CONFIRA ESTE NOME
+        quantidadeInicial: parseInt(document.getElementById('quantidadeInicial').value)
     };
-
     // Se tiver ID, incluímos no objeto para o Java saber quem atualizar
     if (id) produto.id = parseInt(id);
 
@@ -298,4 +298,26 @@ async function finalizarVenda() {
         console.error("Erro na venda:", error);
         alert("Houve um erro ao processar a venda.");
     }
+    async function carregarCategorias() {
+        try {
+            const resposta = await fetch('http://localhost:7000/api/categorias');
+            const categorias = await resposta.json();
+            const select = document.getElementById('idCategoria');
+
+            // Mantém apenas a primeira opção (Selecione...) e limpa o resto
+            select.innerHTML = '<option value="">Selecione uma categoria...</option>';
+
+            categorias.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id; // Aqui o valor será o ID (1, 2, 3...)
+                option.textContent = cat.nome; // Aqui o texto será "Geral", "Periféricos", etc.
+                select.appendChild(option);
+            });
+        } catch (erro) {
+            console.error("Erro ao carregar categorias:", erro);
+        }
+    }
+
+// Chame essa função quando a página carregar
+    carregarCategorias();
 }

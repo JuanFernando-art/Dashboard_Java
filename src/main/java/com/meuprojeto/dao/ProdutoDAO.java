@@ -1,3 +1,4 @@
+// é o que manda as informações para o banco, é o que faz o banco ler, salvar, listar e atualizar
 package com.meuprojeto.dao;
 
 import com.meuprojeto.factory.ConnectionFactory;
@@ -11,75 +12,64 @@ import java.util.List;
 public class ProdutoDAO {
 
     public void salvar(Produto produto) {
-        String sql = "INSERT INTO produtos (nome, categoria, preco_custo, preco_venda, quantidade, quantidade_inicial) VALUES (?, ?, ?, ?, ?, ?)";
+        String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo, idCategoria) VALUES (?, ?, ?, ?)";
+        String sqlEstoque = "INSERT INTO estoque (quantidadeEstoque, idProduto, idEmpreendimento) VALUES (?, ?, ?)";
 
-        Connection conn = null;
-        PreparedStatement pstm = null;
+        try (Connection conn = ConnectionFactory.criarConexao()) {
+            // 1. Salva o Produto
+            PreparedStatement pstmP = conn.prepareStatement(sqlProduto, PreparedStatement.RETURN_GENERATED_KEYS);
+            pstmP.setString(1, produto.getNome());
+            pstmP.setDouble(2, produto.getPrecoVenda());
+            pstmP.setDouble(3, produto.getPrecoCusto());
+            pstmP.setInt(4, produto.getIdCategoria());
+            pstmP.execute();
 
-        try {
-            conn = ConnectionFactory.criarConexao();
-            pstm = conn.prepareStatement(sql);
+            // Pega o ID que o MySQL acabou de gerar para o produto
+            ResultSet rs = pstmP.getGeneratedKeys();
+            if (rs.next()) {
+                int idGerado = rs.getInt(1);
 
-            pstm.setString(1, produto.getNome());
-            pstm.setString(2, produto.getCategoria());
-            pstm.setDouble(3, produto.getPrecoCusto());
-            pstm.setDouble(4, produto.getPrecoVenda());
-            pstm.setInt(5, produto.getQuantidade());
-            pstm.setInt(6, produto.getQuantidadeInicial());
-            pstm.execute();
-            System.out.println("Produto salvo com sucesso no MySQL!");
-
-        } catch (Exception e) {
-            System.out.println("Erro ao salvar produto: " + e.getMessage());
-        } finally {
-            try {
-                if (pstm != null) pstm.close();
-                if (conn != null) conn.close();
-            } catch (Exception e) {
-                e.printStackTrace();
+                // 2. Salva a Quantidade na tabela de Estoque vinculado à Loja
+                PreparedStatement pstmE = conn.prepareStatement(sqlEstoque);
+                pstmE.setInt(1, produto.getQuantidade());
+                pstmE.setInt(2, idGerado);
+                pstmE.setInt(3, produto.getIdEmpreendimento());
+                pstmE.execute();
             }
+        } catch (Exception e) {
+            System.out.println("❌ ERRO NO DAO: " + e.getMessage());
+            e.printStackTrace(); // Isso vai mostrar a linha exata do erro no console
         }
     }
-    public List<Produto> listar() {
-        String sql = "SELECT * FROM produtos"; // A ordem SQL
-        List<Produto> produtos = new ArrayList<>(); // A lista que vai guardar os resultados
+    public List<Produto> listar(int idEmpreendimento) {
+        // SQL unindo as tabelas para pegar dados físicos e numéricos
+        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, p.idCategoria, " +
+                "e.quantidadeEstoque, e.quantidadeInicial " +
+                "FROM produto p " +
+                "JOIN estoque e ON p.idProduto = e.idProduto " +
+                "WHERE e.idEmpreendimento = ?";
 
-        Connection conn = null;
-        PreparedStatement pstm = null;
-        ResultSet rset = null; // Onde os dados do MySQL "pousam" antes de ir pro Java
+        List<Produto> produtos = new ArrayList<>();
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql)) {
 
-        try {
-            conn = ConnectionFactory.criarConexao();
-            pstm = conn.prepareStatement(sql);
+            pstm.setInt(1, idEmpreendimento);
+            ResultSet rset = pstm.executeQuery();
 
-            // Executa a busca e guarda no rset
-            rset = pstm.executeQuery();
-
-            // Enquanto houver uma próxima linha no banco...
             while (rset.next()) {
                 Produto p = new Produto();
-                p.setId(rset.getInt("id"));
+                // MAPEAMENTO: Nome no Java <- Nome no MySQL
+                p.setId(rset.getInt("idProduto"));
                 p.setNome(rset.getString("nome"));
-                p.setCategoria(rset.getString("categoria"));
-                p.setQuantidade(rset.getInt("quantidade"));
-                p.setQuantidadeInicial(rset.getInt("quantidade_inicial"));
-                p.setPrecoVenda(rset.getDouble("preco_venda"));
-                p.setPrecoCusto(rset.getDouble("preco_custo"));
+                p.setPrecoVenda(rset.getDouble("valor_venda"));
+                p.setPrecoCusto(rset.getDouble("valor_custo"));
+                p.setIdCategoria(rset.getInt("idCategoria"));
+                p.setQuantidade(rset.getInt("quantidadeEstoque"));
+                p.setQuantidadeInicial(rset.getInt("quantidadeInicial"));
                 produtos.add(p);
             }
-        } catch (Exception e) {
-            System.out.println("Erro ao listar produtos: " + e.getMessage());
-        } finally {
-            // Agora sim, a parte do fechamento que você já tinha:
-            try {
-                if (rset != null) rset.close();
-                if (pstm != null) pstm.close();
-                if (conn != null) conn.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return produtos; // Devolve a lista cheia para o seu método main
+        } catch (Exception e) { e.printStackTrace(); }
+        return produtos;
     }
 
     public void deletar(int id) {
@@ -103,55 +93,45 @@ public class ProdutoDAO {
     }
 
     public void atualizar(Produto produto) {
-        String sql = "UPDATE produtos SET nome=?, categoria=?, preco_custo=?, preco_venda=?, quantidade=?, quantidade_inicial=? WHERE id=?";
+        String sqlProd = "UPDATE produto SET nome=?, valor_venda=?, valor_custo=?, idCategoria=? WHERE idProduto=?";
+        // AGORA ATUALIZAMOS A quantidadeInicial TAMBÉM!
+        String sqlEstoque = "UPDATE estoque SET quantidadeEstoque=?, quantidadeInicial=? WHERE idProduto=? AND idEmpreendimento=?";
 
-        Connection conn = null;
-        PreparedStatement pstm = null;
+        try (Connection conn = ConnectionFactory.criarConexao()) {
+            PreparedStatement pstmP = conn.prepareStatement(sqlProd);
+            pstmP.setString(1, produto.getNome());
+            pstmP.setDouble(2, produto.getPrecoVenda());
+            pstmP.setDouble(3, produto.getPrecoCusto());
+            pstmP.setInt(4, produto.getIdCategoria());
+            pstmP.setInt(5, produto.getId());
+            pstmP.executeUpdate();
 
-        try {
-            conn = ConnectionFactory.criarConexao();
-            pstm = conn.prepareStatement(sql);
-
-            pstm.setString(1, produto.getNome());
-            pstm.setString(2, produto.getCategoria());
-            pstm.setDouble(3, produto.getPrecoCusto());
-            pstm.setDouble(4, produto.getPrecoVenda());
-            pstm.setInt(5, produto.getQuantidade());
-            pstm.setInt(6, produto.getQuantidadeInicial());
-            pstm.setInt(7, produto.getId());
-
-            int linhasAfetadas = pstm.executeUpdate(); // Use executeUpdate para saber o resultado
-
-            if (linhasAfetadas > 0) {
-                System.out.println("Produto atualizado com sucesso!");
-            } else {
-                System.out.println("Atenção: Nenhum produto encontrado com o ID informado.");
-            }
-                System.out.println("Produto atualizado com sucesso!");
-            } catch (Exception e) {
-                System.out.println("Erro ao atualizar: " + e.getMessage());
-            } finally {
-                // ... fechar conexões ...
-        }
+            PreparedStatement pstmE = conn.prepareStatement(sqlEstoque);
+            pstmE.setInt(1, produto.getQuantidade());
+            pstmE.setInt(2, produto.getQuantidadeInicial()); // ESSA LINHA RESOLVE O SEU PROBLEMA
+            pstmE.setInt(3, produto.getId());
+            pstmE.setInt(4, produto.getIdEmpreendimento());
+            pstmE.executeUpdate();
+        } catch (Exception e) { e.printStackTrace(); }
     }
     public void baixarEstoque(int id, int quantidadeVendida) {
         String sql = "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ? AND quantidade >= ?";
         // O 'AND quantidade >= ?' impede que o estoque fique negativo!
     }
-    public void subtrairEstoque(int id, int qtdVendida) {
-        String sql = "UPDATE produtos SET quantidade = quantidade - ? WHERE id = ? AND quantidade >= ?";
+    public void subtrairEstoque(int idProduto, int qtdVendida, int idEmpreendimento) {
+        // Agora apontamos para a tabela ESTOQUE e filtramos pelo EMPREENDIMENTO
+        String sql = "UPDATE estoque SET quantidadeEstoque = quantidadeEstoque - ? " +
+                "WHERE idProduto = ? AND idEmpreendimento = ? AND quantidadeEstoque >= ?";
 
         try (Connection conn = ConnectionFactory.criarConexao();
              PreparedStatement pstm = conn.prepareStatement(sql)) {
 
             pstm.setInt(1, qtdVendida);
-            pstm.setInt(2, id);
-            pstm.setInt(3, qtdVendida); // Garante que não baixe se não houver estoque suficiente
+            pstm.setInt(2, idProduto);
+            pstm.setInt(3, idEmpreendimento);
+            pstm.setInt(4, qtdVendida);
 
-            int linhasAfetadas = pstm.executeUpdate();
-            if (linhasAfetadas == 0) {
-                System.out.println("Aviso: Estoque insuficiente para o produto ID: " + id);
-            }
+            pstm.executeUpdate();
         } catch (Exception e) {
             e.printStackTrace();
         }
