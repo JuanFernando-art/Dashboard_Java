@@ -146,4 +146,3 @@ DELETE FROM itemVenda;
 DELETE FROM venda;
 DELETE FROM estoque;
 DELETE FROM produto;
--- Deixe apenas 1 empreendimento e 1 categoria para começar
