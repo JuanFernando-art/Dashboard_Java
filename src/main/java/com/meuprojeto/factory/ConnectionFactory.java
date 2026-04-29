@@ -16,7 +16,7 @@ public class ConnectionFactory {
 
     // Dados de acesso ao seu MySQL Local
     private static final String USERNAME = "root";
-    private static final String PASSWORD = "Game@9847"; // Sua senha do banco
+    private static final String PASSWORD = ""; // Sua senha do banco
     // URL: Aponta para o endereço do banco (localhost) e o nome da base (estoque_db)
     private static final String DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db";
 

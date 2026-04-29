@@ -1,5 +1,8 @@
 package com.meuprojeto.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+
 /**
  * CLASSE: Venda
  * FUNÇÃO: Representa o registro histórico de uma transação concluída.
@@ -8,6 +11,7 @@ package com.meuprojeto.model;
  * dos itens para que o histórico de vendas possa ser consultado sem precisar
  * de cálculos complexos a cada visualização.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Venda {
 
     // Identificador único da venda (Gerado automaticamente pelo MySQL)
@@ -15,6 +19,10 @@ public class Venda {
 
     // Valor total bruto da venda (Soma de todos os itens vendidos)
     private double total;
+
+    private int idEmpreendimento;
+
+    private List<ItemVenda> itens;
 
     // Lista descritiva dos produtos.
     // DICA PARA O FRONT-END: Você pode formatar isso como uma String simples
@@ -45,6 +53,22 @@ public class Venda {
 
     public void setTotal(double total) {
         this.total = total;
+    }
+
+    public int getIdEmpreendimento() {
+        return idEmpreendimento;
+    }
+
+    public void setIdEmpreendimento(int idEmpreendimento) {
+        this.idEmpreendimento = idEmpreendimento;
+    }
+
+    public List<ItemVenda> getItens() {
+        return itens;
+    }
+
+    public void setItens(List<ItemVenda> itens) {
+        this.itens = itens;
     }
 
     public String getProdutosVendidos() {

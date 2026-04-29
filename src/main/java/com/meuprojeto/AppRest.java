@@ -3,10 +3,12 @@ package com.meuprojeto;
 import com.meuprojeto.dao.CategoriaDAO;
 import com.meuprojeto.dao.VendaDAO;
 import com.meuprojeto.dao.ProdutoDAO;
+import com.meuprojeto.dao.UsuarioDAO;
 import com.meuprojeto.factory.ConnectionFactory;
 import com.meuprojeto.model.DashboardDTO;
 import com.meuprojeto.model.Venda;
 import com.meuprojeto.model.Produto;
+import com.meuprojeto.model.Usuario;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 
@@ -29,17 +31,75 @@ public class AppRest {
         ProdutoDAO produtoDAO = new ProdutoDAO();
         VendaDAO vendaDAO = new VendaDAO();
         CategoriaDAO categoriaDAO = new CategoriaDAO();
+        UsuarioDAO usuarioDAO = new UsuarioDAO();
 
         // Inicializa o Javalin e configura a pasta de arquivos web
         var app = Javalin.create(config -> {
             config.staticFiles.add("./Web", Location.EXTERNAL);
         }).start(7000);
 
+        // --- GRUPO: USUARIOS ---
+
+        // Cria um novo usuario e retorna o ID gerado pelo banco para o front-end.
+        app.post("/api/usuarios", ctx -> {
+            Usuario usuario = ctx.bodyAsClass(Usuario.class);
+
+            if (usuario.getNome() == null || usuario.getNome().isBlank()
+                    || usuario.getCpf() == null || usuario.getCpf().isBlank()
+                    || usuario.getEmail() == null || usuario.getEmail().isBlank()
+                    || usuario.getSenha() == null || usuario.getSenha().isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Preencha nome, CPF, email e senha."));
+                return;
+            }
+
+            try {
+                int idUsuario = usuarioDAO.salvar(usuario);
+                ctx.status(201).json(Map.of(
+                        "idUsuario", idUsuario,
+                        "nome", usuario.getNome(),
+                        "email", usuario.getEmail()
+                ));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("erro", "Erro ao cadastrar usuario: " + e.getMessage()));
+            }
+        });
+
         // --- 📦 GRUPO: PRODUTOS ---
 
         // Lista produtos (Padrão: Loja 1)
+        app.post("/api/login", ctx -> {
+            Usuario credenciais = ctx.bodyAsClass(Usuario.class);
+
+            if (credenciais.getEmail() == null || credenciais.getEmail().isBlank()
+                    || credenciais.getSenha() == null || credenciais.getSenha().isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Preencha email e senha."));
+                return;
+            }
+
+            try {
+                Usuario usuario = usuarioDAO.autenticar(credenciais.getEmail(), credenciais.getSenha());
+
+                if (usuario == null) {
+                    ctx.status(401).json(Map.of("erro", "Email ou senha invalidos."));
+                    return;
+                }
+
+                ctx.json(Map.of(
+                        "idUsuario", usuario.getIdUsuario(),
+                        "nome", usuario.getNome(),
+                        "email", usuario.getEmail()
+                ));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("erro", "Erro ao fazer login: " + e.getMessage()));
+            }
+        });
+
         app.get("/api/produtos", ctx -> {
-            ctx.json(produtoDAO.listar(1));
+            String idEmpreendimento = ctx.queryParam("idEmpreendimento");
+            int idEmp = idEmpreendimento != null && !idEmpreendimento.isBlank()
+                    ? Integer.parseInt(idEmpreendimento)
+                    : 1;
+            ctx.json(produtoDAO.listar(idEmp));
         });
 
         // Cadastra novo produto
@@ -80,14 +140,24 @@ public class AppRest {
 
         // Retorna todo o histórico de vendas
         app.get("/api/vendas", ctx -> {
+            String idEmpreendimento = ctx.queryParam("idEmpreendimento");
+            if (idEmpreendimento != null && !idEmpreendimento.isBlank()) {
+                ctx.json(vendaDAO.listarPorEmpreendimento(Integer.parseInt(idEmpreendimento)));
+                return;
+            }
+
             ctx.json(vendaDAO.listar());
         });
 
         // Registra uma nova venda concluída
         app.post("/api/vendas", ctx -> {
-            Venda venda = ctx.bodyAsClass(Venda.class);
-            vendaDAO.salvar(venda);
-            ctx.status(201).result("Venda realizada com sucesso!");
+            try {
+                Venda venda = ctx.bodyAsClass(Venda.class);
+                vendaDAO.salvar(venda);
+                ctx.status(201).json(Map.of("mensagem", "Venda realizada com sucesso!"));
+            } catch (Exception e) {
+                ctx.status(500).json(Map.of("erro", "Erro ao registrar venda: " + e.getMessage()));
+            }
         });
 
         // --- 📁 GRUPO: CATEGORIAS ---
@@ -111,17 +181,28 @@ public class AppRest {
 
         // Cadastra uma nova unidade de negócio (Loja/Oficina/Padaria)
         app.post("/api/empreendimentos", ctx -> {
-            Map<String, String> dados = ctx.bodyAsClass(Map.class);
-            String nome = dados.get("nome");
-            String cnpj = dados.get("cnpj");
+            Map<String, Object> dados = ctx.bodyAsClass(Map.class);
+            String nome = (String) dados.get("nome");
+            String cnpj = (String) dados.get("cnpj");
+
+            if (nome == null || nome.isBlank()
+                    || cnpj == null || cnpj.isBlank()
+                    || dados.get("idUsuario") == null) {
+                ctx.status(400).json(Map.of("erro", "Preencha nome, CNPJ e idUsuario."));
+                return;
+            }
+
+            int idUsuario = ((Number) dados.get("idUsuario")).intValue();
+
             try (Connection conn = ConnectionFactory.criarConexao();
-                 PreparedStatement pstm = conn.prepareStatement("INSERT INTO empreendimento (nome, CNPJ) VALUES (?, ?)")) {
+                 PreparedStatement pstm = conn.prepareStatement("INSERT INTO empreendimento (nome, CNPJ, idUsuario) VALUES (?, ?, ?)")) {
                 pstm.setString(1, nome);
                 pstm.setString(2, cnpj);
+                pstm.setInt(3, idUsuario);
                 pstm.execute();
-                ctx.status(201).result("Empreendimento criado!");
+                ctx.status(201).json(Map.of("mensagem", "Empreendimento criado!"));
             } catch (Exception e) {
-                ctx.status(500).result("Erro: " + e.getMessage());
+                ctx.status(500).json(Map.of("erro", "Erro ao criar empreendimento: " + e.getMessage()));
             }
         });
 
@@ -129,12 +210,21 @@ public class AppRest {
 
         // Retorna os dados das BARRAS BRANCAS (Resumo por loja)
         app.get("/api/dashboard/empreendimentos", ctx -> {
+            String idUsuario = ctx.queryParam("idUsuario");
+            if (idUsuario != null && !idUsuario.isBlank()) {
+                ctx.json(vendaDAO.listarResumoEmpreendimentosPorUsuario(Integer.parseInt(idUsuario)));
+                return;
+            }
+
             ctx.json(vendaDAO.listarResumoEmpreendimentos());
         });
 
         // Retorna os dados dos CARDS COLORIDOS (Soma total de todas as lojas)
         app.get("/api/dashboard/total", ctx -> {
-            List<DashboardDTO> lista = vendaDAO.listarResumoEmpreendimentos();
+            String idUsuario = ctx.queryParam("idUsuario");
+            List<DashboardDTO> lista = idUsuario != null && !idUsuario.isBlank()
+                    ? vendaDAO.listarResumoEmpreendimentosPorUsuario(Integer.parseInt(idUsuario))
+                    : vendaDAO.listarResumoEmpreendimentos();
             double totalBruto = lista.stream().mapToDouble(DashboardDTO::getLucroBruto).sum();
             double totalGasto = lista.stream().mapToDouble(DashboardDTO::getGastoBruto).sum();
             ctx.json(Map.of(
@@ -144,6 +234,6 @@ public class AppRest {
             ));
         });
 
-        System.out.println("✅ SERVIDOR ON: http://localhost:7000/index.html");
+        System.out.println("SERVIDOR ON: http://localhost:7000/index.html");
     }
 }

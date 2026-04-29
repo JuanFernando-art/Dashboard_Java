@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro - Gestor ERP</title>
+    <link rel="stylesheet" href="cadastro.css">
+</head>
+<body class="cadastro-page">
+<main class="cadastro-container">
+    <section class="cadastro-card">
+        <div class="cadastro-header">
+            <span class="brand-mark">ERP</span>
+            <div>
+                <h1>Criar conta</h1>
+                <p>Cadastre o usuario para acessar o painel.</p>
+            </div>
+        </div>
+
+        <form id="formCadastro" class="cadastro-form">
+            <label for="nomeCadastro">Nome completo</label>
+            <input type="text" id="nomeCadastro" required placeholder="Ex: Ana Silva">
+
+            <label for="cpfCadastro">CPF</label>
+            <input type="text" id="cpfCadastro" required placeholder="000.000.000-00">
+
+            <label for="emailCadastro">Email</label>
+            <input type="email" id="emailCadastro" required placeholder="ana@email.com">
+
+            <label for="senhaCadastro">Senha</label>
+            <input type="password" id="senhaCadastro" required minlength="3" placeholder="Digite sua senha">
+
+            <p id="erroCadastro" class="form-error"></p>
+
+            <button type="submit" class="btn-save">Cadastrar e entrar</button>
+        </form>
+
+        <p class="auth-link">Ja tem conta? <a href="../index.html">Entrar</a></p>
+    </section>
+</main>
+
+<script src="cadastro.js"></script>
+</body>
+</html>

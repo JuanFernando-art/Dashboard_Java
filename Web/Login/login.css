@@ -1,0 +1,111 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.cadastro-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2f7;
+    min-height: 100vh;
+}
+
+.cadastro-container {
+    width: min(94vw, 460px);
+}
+
+.cadastro-card {
+    background: white;
+    border: 1px solid #dde4ef;
+    border-radius: 8px;
+    box-shadow: 0 12px 35px rgba(26, 34, 45, 0.14);
+    padding: 28px;
+}
+
+.cadastro-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: #1a222d;
+    color: white;
+    font-weight: 700;
+}
+
+.cadastro-header h1 {
+    color: #1a222d;
+    font-size: 26px;
+    margin-bottom: 4px;
+}
+
+.cadastro-header p {
+    color: #667085;
+    font-size: 14px;
+}
+
+.cadastro-form label {
+    display: block;
+    color: #333;
+    font-weight: 600;
+    margin-top: 14px;
+    margin-bottom: 6px;
+}
+
+.cadastro-form input {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #ccd5e1;
+    border-radius: 6px;
+}
+
+.cadastro-form input:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.12);
+    outline: none;
+}
+
+.btn-save {
+    width: 100%;
+    background: #28a745;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.form-error {
+    color: #c0392b;
+    min-height: 20px;
+    margin: 12px 0;
+    font-size: 14px;
+}
+
+.auth-link {
+    color: #667085;
+    font-size: 14px;
+    margin-top: 18px;
+    text-align: center;
+}
+
+.auth-link a {
+    color: #4e73df;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+}

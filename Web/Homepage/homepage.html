@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="homepage.css" />
+    <link rel="shortcut icon" href="../assets/casa.svg" type="image/x-icon">
+    <title>Pagina Inicial</title>
+  </head>
+  <body>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__brand">
+        <h2>Gestor ERP</h2>
+        <button class="sidebar__toggle" id="toggle-menu" type="button" aria-label="Abrir menu">
+          <img src="../assets/menu-burger.svg" alt="" />
+        </button>
+      </div>
+
+      <div class="usuario-logado">
+        <span>Usuario</span>
+        <strong id="homepage-user">Nao identificado</strong>
+      </div>
+
+      <h1 class="sidebar__title">Seus Empreendimentos</h1>
+      <div class="sidebar__ventures" id="sidebar__ventures"></div>
+
+      <div class="sidebar__new-venture">
+        <button class="btn btn--primary" id="open-venture-modal">Novo empreendimento</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header>
+        <div>
+          <h1>Pagina Inicial</h1>
+          <p class="page-subtitle">Acompanhe seus resultados e acesse os empreendimentos cadastrados.</p>
+        </div>
+      </header>
+
+      <section class="summary-grid">
+        <div class="summary-card summary-card--sales" id="card--sales">
+          <span>Lucro total</span>
+          <strong id="card--text-sales">R$ 0,00</strong>
+        </div>
+        <div class="summary-card summary-card--expenses" id="card--expenses">
+          <span>Gastos totais</span>
+          <strong id="card--text-expenses">R$ 0,00</strong>
+        </div>
+        <div class="summary-card summary-card--profit">
+          <span>Total liquido</span>
+          <strong id="card--text-profit">R$ 0,00</strong>
+        </div>
+      </section>
+
+      <section class="table-container">
+        <div class="section-header">
+          <h2>Empreendimentos</h2>
+        </div>
+        <div class="dashboard__preview" id="dashboard__preview"></div>
+      </section>
+    </main>
+
+    <div class="modal" id="venture-modal">
+      <div class="modal__content">
+        <button class="modal__close" id="close-venture-modal" type="button">&times;</button>
+        <h2>Novo empreendimento</h2>
+        <form id="venture-form">
+          <label for="venture-name">Nome</label>
+          <input type="text" id="venture-name" required placeholder="Ex: Loja Matriz" />
+
+          <label for="venture-cnpj">CNPJ</label>
+          <input type="text" id="venture-cnpj" required placeholder="00.000.000/0001-00" />
+
+          <p class="modal__error" id="venture-error"></p>
+          <button class="btn btn--primary" type="submit">Cadastrar empreendimento</button>
+        </form>
+      </div>
+    </div>
+    <script src="homepage.js"></script>
+  </body>
+</html>

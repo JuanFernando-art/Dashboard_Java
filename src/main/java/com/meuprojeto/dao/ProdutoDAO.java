@@ -25,7 +25,7 @@ public class ProdutoDAO {
     public void salvar(Produto produto) {
         // SQL para as duas tabelas distintas
         String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo, idCategoria) VALUES (?, ?, ?, ?)";
-        String sqlEstoque = "INSERT INTO estoque (quantidadeEstoque, idProduto, idEmpreendimento) VALUES (?, ?, ?)";
+        String sqlEstoque = "INSERT INTO estoque (quantidadeEstoque, quantidadeInicial, idProduto, idEmpreendimento) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.criarConexao()) {
             // 1. SALVAMENTO DO PRODUTO: 
@@ -46,8 +46,9 @@ public class ProdutoDAO {
                 // Vincula o produto recém-criado à quantidade informada e ao empreendimento atual.
                 PreparedStatement pstmE = conn.prepareStatement(sqlEstoque);
                 pstmE.setInt(1, produto.getQuantidade());
-                pstmE.setInt(2, idGerado);
-                pstmE.setInt(3, produto.getIdEmpreendimento());
+                pstmE.setInt(2, produto.getQuantidadeInicial());
+                pstmE.setInt(3, idGerado);
+                pstmE.setInt(4, produto.getIdEmpreendimento());
                 pstmE.execute();
             }
         } catch (Exception e) {
@@ -84,6 +85,7 @@ public class ProdutoDAO {
                 p.setPrecoVenda(rset.getDouble("valor_venda"));
                 p.setPrecoCusto(rset.getDouble("valor_custo"));
                 p.setIdCategoria(rset.getInt("idCategoria"));
+                p.setIdEmpreendimento(idEmpreendimento);
                 p.setQuantidade(rset.getInt("quantidadeEstoque"));
                 p.setQuantidadeInicial(rset.getInt("quantidadeInicial"));
                 produtos.add(p);

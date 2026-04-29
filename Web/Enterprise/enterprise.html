@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestor ERP - Microempresas</title>
+    <link rel="stylesheet" href="enterprise.css">
+</head>
+<body>
+<div class="sidebar">
+    <h2>📊 Gestor ERP</h2>
+    <div class="usuario-logado">
+        <span>Usuário</span>
+        <strong id="usuarioLogado">Não identificado</strong>
+    </div>
+    <nav>
+        <a href="#" id="linkEstoque" class="active" onclick="mostrarProdutos()">Estoque</a>
+        <a href="#" id="linkVendas" onclick="mostrarVendas()">Vendas</a>
+        <a href="#">Relatórios</a>
+        <a href="#" id="linkHomepage">Voltar para Homepage</a>
+    </nav>
+</div>
+
+<main class="content">
+    <div id="secaoProdutos">
+        <header>
+            <h1>Controle de Estoque</h1>
+            <button class="btn-primary" onclick="abrirModal()">+ Novo Produto</button>
+        </header>
+
+        <div class="controle-topo">
+            <div class="busca-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="inputBusca" placeholder="Pesquisar produto ou categoria..." onkeyup="filtrarTabela()">
+            </div>
+
+            <div class="filtro-wrapper">
+                <label for="filtroEstoque">Filtrar Estoque:</label>
+                <select id="filtroEstoque" onchange="filtrarTabela()">
+                    <option value="todos">📊 Todos os níveis</option>
+                    <option value="alerta">⚠️ Abaixo de 50% (Alerta)</option>
+                    <option value="critico">🚨 Abaixo de 20% (Crítico)</option>
+                </select>
+            </div>
+        </div>
+
+        <section class="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome do Produto</th>
+                    <th>Categoria</th>
+                    <th>Qtd.</th>
+                    <th>Preço Venda</th>
+                    <th>Ações</th>
+                </tr>
+                </thead>
+                <tbody id="tabela-corpo">
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <div id="secaoVendas" style="display:none;">
+        <header>
+            <h1>Histórico de Vendas</h1>
+            <button class="btn-primary" onclick="abrirModalPDV()">+ Nova Venda</button>
+        </header>
+
+        <section class="table-container" style="margin-top: 20px;">
+            <table id="tabelaVendas">
+                <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Produtos</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody id="corpoVendas"></tbody>
+            </table>
+        </section>
+    </div>
+</main>
+
+<div id="modalProduto" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModal()">&times;</span>
+        <h2 id="modalTitulo" style="margin-bottom: 20px;">Cadastrar Produto</h2>
+
+        <form id="formProduto">
+            <input type="hidden" id="prodId">
+            <label>Nome do Produto:</label>
+            <input type="text" id="nome" required placeholder="Ex: Mouse Gamer">
+            <label>Categoria:</label>
+            <select id="idCategoria" required>
+                <option value="">Selecione uma categoria...</option>
+            </select>
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label>Preço Custo:</label>
+                    <input type="number" step="0.01" id="precoCusto">
+                </div>
+                <div style="flex: 1;">
+                    <label>Preço Venda:</label>
+                    <input type="number" step="0.01" id="precoVenda">
+                </div>
+            </div>
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label>Quantidade em Estoque:</label>
+                    <input type="number" id="quantidade" required oninput="validarLimite()">
+                </div>
+                <div style="flex: 1;">
+                    <label>Capacidade Máxima (100%):</label>
+                    <input type="number" id="quantidadeInicial" required oninput="validarLimite()">
+                </div>
+            </div>
+            <small id="erroLimite" style="color: red; display: none;">A quantidade não pode exceder o limite!</small>
+            <button type="submit" class="btn-save">Salvar no Estoque</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalPDV" class="modal">
+    <div class="modal-content" style="width: 80%; max-width: 900px;">
+        <span class="close" onclick="document.getElementById('modalPDV').style.display='none'">&times;</span>
+        <h2>Nova Venda (PDV)</h2>
+
+        <div style="display: flex; gap: 20px; margin-top: 20px;">
+            <div style="flex: 1;">
+                <input type="text" id="buscaPDV" placeholder="Buscar produto..." onkeyup="filtrarPDV()" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                <div id="listaProdutosPDV" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; margin-top: 10px; border-radius: 5px;">
+                </div>
+            </div>
+
+            <div style="flex: 1; background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #eee;">
+                <h3>🛒 Carrinho</h3>
+                <div id="itensCarrinho" style="min-height: 150px; margin-top: 15px;"></div>
+                <hr style="margin: 15px 0; border: 0; border-top: 1px solid #ddd;">
+                <h4 id="totalVenda" style="font-size: 20px; text-align: right;">Total: R$ 0,00</h4>
+                <button class="btn-save" style="width: 100%; margin-top: 20px;" onclick="finalizarVenda()">Finalizar e Dar Baixa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="enterprise.js"></script>
+</body>
+</html>
+
+

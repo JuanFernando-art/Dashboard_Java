@@ -14,6 +14,16 @@ import java.util.List;
  * "Oficina" apareçam em uma "Padaria".
  */
 public class CategoriaDAO {
+    private static final String[] CATEGORIAS_PADRAO = {
+            "Geral",
+            "Alimentos",
+            "Bebidas",
+            "Limpeza",
+            "Eletronicos",
+            "Servicos",
+            "Perifericos",
+            "Hardware"
+    };
 
     /**
      * MÉTODO: listarPorEmpreendimento
@@ -22,6 +32,8 @@ public class CategoriaDAO {
      * @return Uma lista de objetos Categoria (ID e Nome) para preencher os menus do site.
      */
     public List<Categoria> listarPorEmpreendimento(int idEmp) {
+        garantirCategoriasPadrao(idEmp);
+
         // Comando SQL com '?' para evitar ataques de SQL Injection
         String sql = "SELECT * FROM categoria WHERE idEmpreendimento = ?";
         List<Categoria> lista = new ArrayList<>();
@@ -49,6 +61,34 @@ public class CategoriaDAO {
             e.printStackTrace();
         }
         return lista;
+    }
+
+    private void garantirCategoriasPadrao(int idEmp) {
+        String sqlContar = "SELECT COUNT(*) FROM categoria WHERE idEmpreendimento = ?";
+        String sqlInserir = "INSERT INTO categoria (nome, idEmpreendimento) VALUES (?, ?)";
+
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement contar = conn.prepareStatement(sqlContar)) {
+
+            contar.setInt(1, idEmp);
+
+            try (ResultSet rs = contar.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    return;
+                }
+            }
+
+            try (PreparedStatement inserir = conn.prepareStatement(sqlInserir)) {
+                for (String nome : CATEGORIAS_PADRAO) {
+                    inserir.setString(1, nome);
+                    inserir.setInt(2, idEmp);
+                    inserir.addBatch();
+                }
+                inserir.executeBatch();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**

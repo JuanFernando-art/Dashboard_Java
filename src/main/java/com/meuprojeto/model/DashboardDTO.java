@@ -9,6 +9,8 @@ package com.meuprojeto.model;
  */
 public class DashboardDTO {
 
+    private int idEmpreendimento;
+
     // Nome da loja ou unidade de negócio
     private String nomeEmpreendimento;
 
@@ -26,6 +28,14 @@ public class DashboardDTO {
 
     // --- GETTERS E SETTERS ---
     // Essenciais para o Javalin transformar este objeto em JSON automaticamente.
+
+    public int getIdEmpreendimento() {
+        return idEmpreendimento;
+    }
+
+    public void setIdEmpreendimento(int idEmpreendimento) {
+        this.idEmpreendimento = idEmpreendimento;
+    }
 
     public String getNomeEmpreendimento() {
         return nomeEmpreendimento;
