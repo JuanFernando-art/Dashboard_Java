@@ -70,6 +70,23 @@ body {
   font-size: 14px;
 }
 
+.logout-button {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  background: #e74a3b;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.logout-button:hover {
+  color: white;
+  border-color: #4e73df;
+}
+
 .sidebar__title {
   color: #aeb7c2;
   font-size: 13px;
@@ -315,7 +332,9 @@ header h1 {
 
 .modal__content {
   position: relative;
-  width: min(100%, 450px);
+  width: min(100%, 560px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   background: white;
   border-radius: 8px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
@@ -346,6 +365,24 @@ header h1 {
 .modal__content input:focus {
   border-color: #4e73df;
   box-shadow: 0 0 8px rgba(78, 115, 223, 0.2);
+}
+
+.form-section-title {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 18px;
+  text-transform: uppercase;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 12px;
+}
+
+.form-grid--address {
+  grid-template-columns: 1fr 110px;
 }
 
 .modal__content .btn {
@@ -391,6 +428,11 @@ header h1 {
   }
 
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid,
+  .form-grid--address {
     grid-template-columns: 1fr;
   }
 

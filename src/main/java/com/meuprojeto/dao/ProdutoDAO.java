@@ -24,7 +24,7 @@ public class ProdutoDAO {
      */
     public void salvar(Produto produto) {
         // SQL para as duas tabelas distintas
-        String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo, idCategoria) VALUES (?, ?, ?, ?)";
+        String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo) VALUES (?, ?, ?)";
         String sqlEstoque = "INSERT INTO estoque (quantidadeEstoque, quantidadeInicial, idProduto, idEmpreendimento) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.criarConexao()) {
@@ -34,7 +34,6 @@ public class ProdutoDAO {
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
             pstmP.setDouble(3, produto.getPrecoCusto());
-            pstmP.setInt(4, produto.getIdCategoria());
             pstmP.execute();
 
             // Pega o ID (chave primária) que o MySQL acabou de gerar
@@ -64,7 +63,7 @@ public class ProdutoDAO {
      */
     public List<Produto> listar(int idEmpreendimento) {
         // O comando JOIN une a tabela 'produto' com a 'estoque' usando o ID em comum.
-        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, p.idCategoria, " +
+        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, " +
                 "e.quantidadeEstoque, e.quantidadeInicial " +
                 "FROM produto p " +
                 "JOIN estoque e ON p.idProduto = e.idProduto " +
@@ -84,7 +83,6 @@ public class ProdutoDAO {
                 p.setNome(rset.getString("nome"));
                 p.setPrecoVenda(rset.getDouble("valor_venda"));
                 p.setPrecoCusto(rset.getDouble("valor_custo"));
-                p.setIdCategoria(rset.getInt("idCategoria"));
                 p.setIdEmpreendimento(idEmpreendimento);
                 p.setQuantidade(rset.getInt("quantidadeEstoque"));
                 p.setQuantidadeInicial(rset.getInt("quantidadeInicial"));
@@ -100,7 +98,7 @@ public class ProdutoDAO {
      */
     public void atualizar(Produto produto) {
         // Atualiza a "ficha" do produto
-        String sqlProd = "UPDATE produto SET nome=?, valor_venda=?, valor_custo=?, idCategoria=? WHERE idProduto=?";
+        String sqlProd = "UPDATE produto SET nome=?, valor_venda=?, valor_custo=? WHERE idProduto=?";
         // Atualiza a "quantidade" na loja específica
         String sqlEstoque = "UPDATE estoque SET quantidadeEstoque=?, quantidadeInicial=? WHERE idProduto=? AND idEmpreendimento=?";
 
@@ -110,8 +108,7 @@ public class ProdutoDAO {
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
             pstmP.setDouble(3, produto.getPrecoCusto());
-            pstmP.setInt(4, produto.getIdCategoria());
-            pstmP.setInt(5, produto.getId());
+            pstmP.setInt(4, produto.getId());
             pstmP.executeUpdate();
 
             // Executa atualização das quantidades (incluindo a inicial para correção de relatórios)

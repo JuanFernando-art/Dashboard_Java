@@ -30,7 +30,7 @@
         <div class="controle-topo">
             <div class="busca-wrapper">
                 <i class="fas fa-search"></i>
-                <input type="text" id="inputBusca" placeholder="Pesquisar produto ou categoria..." onkeyup="filtrarTabela()">
+                <input type="text" id="inputBusca" placeholder="Pesquisar produto..." onkeyup="filtrarTabela()">
             </div>
 
             <div class="filtro-wrapper">
@@ -49,7 +49,6 @@
                 <tr>
                     <th>ID</th>
                     <th>Nome do Produto</th>
-                    <th>Categoria</th>
                     <th>Qtd.</th>
                     <th>Preço Venda</th>
                     <th>Ações</th>
@@ -91,11 +90,6 @@
             <input type="hidden" id="prodId">
             <label>Nome do Produto:</label>
             <input type="text" id="nome" required placeholder="Ex: Mouse Gamer">
-            <label>Categoria:</label>
-            <select id="idCategoria" required>
-                <option value="">Selecione uma categoria...</option>
-            </select>
-
             <div class="row">
                 <div style="flex: 1;">
                     <label>Preço Custo:</label>

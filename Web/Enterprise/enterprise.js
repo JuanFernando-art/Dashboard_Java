@@ -53,6 +53,8 @@ async function carregarProdutos() {
         const corpoTabela = document.getElementById('tabela-corpo');
         corpoTabela.innerHTML = "";
 
+        console.log("Produtos carregados:", produtos);
+
         produtos.forEach(p => {
             // LÃ³gica das cores baseada na sua regra:
             const porcentagem = (p.quantidade / p.quantidadeInicial) * 100;
@@ -67,7 +69,6 @@ async function carregarProdutos() {
             const linha = `
     <tr class="${classeDestaque}"> <td>${p.id}</td>
         <td>${p.nome}</td>
-        <td>${p.categoria || p.idCategoria || '-'}</td>
         <td>${p.quantidade} / ${p.quantidadeInicial}</td>
         <td>R$ ${p.precoVenda.toFixed(2)}</td>
         <td>
@@ -87,31 +88,9 @@ async function carregarProdutos() {
 // Inicia a busca
 carregarProdutos();
 
-async function carregarCategorias(idEmpreendimento) {
-    try {
-        const resposta = await fetch(`http://localhost:7000/api/categorias/${idEmpreendimento}`);
-        const categorias = await resposta.json();
-        const select = document.getElementById('idCategoria');
-
-        select.innerHTML = '<option value="">Selecione uma categoria...</option>';
-
-        categorias.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.id;
-            option.textContent = cat.nome;
-            select.appendChild(option);
-        });
-    } catch (erro) {
-        console.error("Erro ao carregar categorias:", erro);
-    }
-}
-
-carregarCategorias(idEmpreendimentoAtual);
-
 function abrirModal() {
     document.getElementById('modalTitulo').innerText = "Cadastrar Produto";
     document.getElementById('modalProduto').style.display = 'block';
-    carregarCategorias(idEmpreendimentoAtual);
 }
 
 function fecharModal() {
@@ -129,11 +108,9 @@ async function deletarProduto(id) {
 
 async function prepararEdicao(p) {
     abrirModal();
-    await carregarCategorias(idEmpreendimentoAtual);
     document.getElementById('modalTitulo').innerText = "Editar Produto";
     document.getElementById('prodId').value = p.id;
     document.getElementById('nome').value = p.nome;
-    document.getElementById('idCategoria').value = p.idCategoria;
     document.getElementById('precoCusto').value = p.precoCusto;
     document.getElementById('precoVenda').value = p.precoVenda;
     document.getElementById('quantidade').value = p.quantidade;
@@ -147,7 +124,6 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     const id = document.getElementById('prodId').value;
     const produto = {
         nome: document.getElementById('nome').value,
-        idCategoria: parseInt(document.getElementById('idCategoria').value),
         idEmpreendimento: parseInt(idEmpreendimentoAtual),
         precoCusto: parseFloat(document.getElementById('precoCusto').value),
         precoVenda: parseFloat(document.getElementById('precoVenda').value),
@@ -355,4 +331,3 @@ async function finalizarVenda() {
         alert("Houve um erro ao processar a venda.");
     }
 }
-

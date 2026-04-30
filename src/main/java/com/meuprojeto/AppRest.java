@@ -1,6 +1,5 @@
 package com.meuprojeto;
 
-import com.meuprojeto.dao.CategoriaDAO;
 import com.meuprojeto.dao.VendaDAO;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.dao.UsuarioDAO;
@@ -14,6 +13,8 @@ import io.javalin.http.staticfiles.Location;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +31,6 @@ public class AppRest {
         // Instancia os DAOs para gerenciar o banco de dados
         ProdutoDAO produtoDAO = new ProdutoDAO();
         VendaDAO vendaDAO = new VendaDAO();
-        CategoriaDAO categoriaDAO = new CategoriaDAO();
         UsuarioDAO usuarioDAO = new UsuarioDAO();
 
         // Inicializa o Javalin e configura a pasta de arquivos web
@@ -107,7 +107,6 @@ public class AppRest {
             Produto p = ctx.bodyAsClass(Produto.class);
             // Garante que o produto tenha um vínculo inicial caso o front esqueça de enviar
             if (p.getIdEmpreendimento() == 0) p.setIdEmpreendimento(1);
-            if (p.getIdCategoria() == 0) p.setIdCategoria(1);
             produtoDAO.salvar(p);
             ctx.status(201).result("Cadastrado com sucesso!");
         });
@@ -160,23 +159,6 @@ public class AppRest {
             }
         });
 
-        // --- 📁 GRUPO: CATEGORIAS ---
-
-        // Lista categorias filtradas pelo ID da loja (Empreendimento)
-        app.get("/api/categorias/{idEmp}", ctx -> {
-            int idEmp = Integer.parseInt(ctx.pathParam("idEmp"));
-            ctx.json(categoriaDAO.listarPorEmpreendimento(idEmp));
-        });
-
-        // Cria nova categoria vinculada a uma loja
-        app.post("/api/categorias", ctx -> {
-            Map<String, Object> body = ctx.bodyAsClass(Map.class);
-            String nome = (String) body.get("nome");
-            int idEmp = ((Number) body.get("idEmpreendimento")).intValue();
-            categoriaDAO.salvar(nome, idEmp);
-            ctx.status(201).result("Categoria cadastrada!");
-        });
-
         // --- 🏢 GRUPO: EMPREENDIMENTOS ---
 
         // Cadastra uma nova unidade de negócio (Loja/Oficina/Padaria)
@@ -184,23 +166,75 @@ public class AppRest {
             Map<String, Object> dados = ctx.bodyAsClass(Map.class);
             String nome = (String) dados.get("nome");
             String cnpj = (String) dados.get("cnpj");
+            Map<String, Object> endereco = (Map<String, Object>) dados.get("endereco");
 
             if (nome == null || nome.isBlank()
                     || cnpj == null || cnpj.isBlank()
-                    || dados.get("idUsuario") == null) {
-                ctx.status(400).json(Map.of("erro", "Preencha nome, CNPJ e idUsuario."));
+                    || dados.get("idUsuario") == null
+                    || endereco == null) {
+                ctx.status(400).json(Map.of("erro", "Preencha nome, CNPJ, idUsuario e endereco."));
                 return;
             }
 
             int idUsuario = ((Number) dados.get("idUsuario")).intValue();
+            String cep = (String) endereco.get("cep");
+            String estado = (String) endereco.get("estado");
+            String cidade = (String) endereco.get("cidade");
+            String bairro = (String) endereco.get("bairro");
+            String logradouro = (String) endereco.get("logradouro");
+            Object numeroRaw = endereco.get("numero");
 
-            try (Connection conn = ConnectionFactory.criarConexao();
-                 PreparedStatement pstm = conn.prepareStatement("INSERT INTO empreendimento (nome, CNPJ, idUsuario) VALUES (?, ?, ?)")) {
-                pstm.setString(1, nome);
-                pstm.setString(2, cnpj);
-                pstm.setInt(3, idUsuario);
-                pstm.execute();
-                ctx.status(201).json(Map.of("mensagem", "Empreendimento criado!"));
+            if (cep == null || cep.isBlank()
+                    || estado == null || estado.isBlank()
+                    || cidade == null || cidade.isBlank()
+                    || bairro == null || bairro.isBlank()
+                    || logradouro == null || logradouro.isBlank()
+                    || numeroRaw == null) {
+                ctx.status(400).json(Map.of("erro", "Preencha todos os campos do endereco."));
+                return;
+            }
+
+            int numero = ((Number) numeroRaw).intValue();
+
+            try (Connection conn = ConnectionFactory.criarConexao()) {
+                conn.setAutoCommit(false);
+
+                try {
+                    int idEndereco;
+                    try (PreparedStatement pstmEndereco = conn.prepareStatement(
+                            "INSERT INTO endereco (CEP, estado, cidade, bairro, lougradouro, numero) VALUES (?, ?, ?, ?, ?, ?)",
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        pstmEndereco.setString(1, cep);
+                        pstmEndereco.setString(2, estado);
+                        pstmEndereco.setString(3, cidade);
+                        pstmEndereco.setString(4, bairro);
+                        pstmEndereco.setString(5, logradouro);
+                        pstmEndereco.setInt(6, numero);
+                        pstmEndereco.executeUpdate();
+
+                        try (ResultSet rs = pstmEndereco.getGeneratedKeys()) {
+                            if (!rs.next()) {
+                                throw new Exception("Nao foi possivel recuperar o ID do endereco.");
+                            }
+                            idEndereco = rs.getInt(1);
+                        }
+                    }
+
+                    try (PreparedStatement pstm = conn.prepareStatement(
+                            "INSERT INTO empreendimento (nome, CNPJ, idUsuario, idEndereco) VALUES (?, ?, ?, ?)")) {
+                        pstm.setString(1, nome);
+                        pstm.setString(2, cnpj);
+                        pstm.setInt(3, idUsuario);
+                        pstm.setInt(4, idEndereco);
+                        pstm.executeUpdate();
+                    }
+
+                    conn.commit();
+                    ctx.status(201).json(Map.of("mensagem", "Empreendimento criado!"));
+                } catch (Exception e) {
+                    conn.rollback();
+                    throw e;
+                }
             } catch (Exception e) {
                 ctx.status(500).json(Map.of("erro", "Erro ao criar empreendimento: " + e.getMessage()));
             }

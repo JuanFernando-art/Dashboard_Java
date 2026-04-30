@@ -21,6 +21,16 @@ function loadUserFromRegister() {
 
 loadUserFromRegister();
 
+const logoutButton = document.getElementById("logout-button");
+if (logoutButton) {
+  logoutButton.addEventListener("click", () => {
+    localStorage.removeItem("idUsuario");
+    localStorage.removeItem("nomeUsuario");
+    localStorage.removeItem("idEmpreendimento");
+    window.location.href = "/index.html";
+  });
+}
+
 function openEnterpriseWorkspace(idEmpreendimento) {
   if (!idEmpreendimento) return;
 
@@ -43,6 +53,61 @@ const openVentureModalButton = document.getElementById("open-venture-modal");
 const closeVentureModalButton = document.getElementById("close-venture-modal");
 const ventureForm = document.getElementById("venture-form");
 const ventureError = document.getElementById("venture-error");
+const ventureCepInput = document.getElementById("venture-cep");
+
+function onlyDigits(value) {
+  return value.replace(/\D/g, "");
+}
+
+function formatCep(value) {
+  const digits = onlyDigits(value).slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+async function fillAddressByCep() {
+  const cep = onlyDigits(ventureCepInput.value);
+
+  if (cep.length === 0) {
+    ventureError.innerText = "";
+    return;
+  }
+
+  if (cep.length !== 8) {
+    ventureError.innerText = "Informe um CEP com 8 digitos.";
+    return;
+  }
+
+  ventureError.innerText = "Buscando endereco...";
+
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+
+    if (!response.ok) {
+      throw new Error("Nao foi possivel consultar o CEP.");
+    }
+
+    const address = await response.json();
+
+    if (address.erro) {
+      throw new Error("CEP nao encontrado.");
+    }
+
+    document.getElementById("venture-street").value = address.logradouro || "";
+    document.getElementById("venture-neighborhood").value = address.bairro || "";
+    document.getElementById("venture-city").value = address.localidade || "";
+    document.getElementById("venture-state").value = address.uf || "";
+    ventureError.innerText = "";
+  } catch (error) {
+    ventureError.innerText = error.message;
+  }
+}
+
+ventureCepInput.addEventListener("input", () => {
+  ventureCepInput.value = formatCep(ventureCepInput.value);
+});
+
+ventureCepInput.addEventListener("blur", fillAddressByCep);
 
 function openVentureModal() {
   ventureError.innerText = "";
@@ -77,7 +142,15 @@ ventureForm.addEventListener("submit", async (event) => {
   const empreendimento = {
     nome: document.getElementById("venture-name").value.trim(),
     cnpj: document.getElementById("venture-cnpj").value.trim(),
-    idUsuario: Number(idUsuario)
+    idUsuario: Number(idUsuario),
+    endereco: {
+      cep: document.getElementById("venture-cep").value.trim(),
+      estado: document.getElementById("venture-state").value.trim(),
+      cidade: document.getElementById("venture-city").value.trim(),
+      bairro: document.getElementById("venture-neighborhood").value.trim(),
+      logradouro: document.getElementById("venture-street").value.trim(),
+      numero: Number(document.getElementById("venture-number").value)
+    }
   };
 
   ventureError.innerText = "";
@@ -207,12 +280,12 @@ async function listResumeVentures() {
         sidebar.appendChild(cardVenture)
 
         const editButton = document.createElement("button")
-        editButton.innerText = "edit"
+        editButton.innerText = "Editar"
         editButton.setAttribute("class", "button-edit")
         editButton.addEventListener("click", (event) => event.stopPropagation())
 
         const deleteButton = document.createElement("button")
-        deleteButton.innerText = "delete"
+        deleteButton.innerText = "Excluir"
         deleteButton.setAttribute("class", "button-delete")
         deleteButton.addEventListener("click", (event) => event.stopPropagation())
 
