@@ -54,6 +54,19 @@ const closeVentureModalButton = document.getElementById("close-venture-modal");
 const ventureForm = document.getElementById("venture-form");
 const ventureError = document.getElementById("venture-error");
 const ventureCepInput = document.getElementById("venture-cep");
+const ventureModalTitle = document.getElementById("venture-modal-title");
+const ventureSubmitButton = document.getElementById("venture-submit-button");
+let editingVentureId = null;
+
+const deleteVentureModal = document.getElementById("delete-venture-modal");
+const closeDeleteVentureModalButton = document.getElementById("close-delete-venture-modal");
+const cancelDeleteVentureButton = document.getElementById("cancel-delete-venture");
+const deleteVentureForm = document.getElementById("delete-venture-form");
+const deleteVentureName = document.getElementById("delete-venture-name");
+const deleteVenturePassword = document.getElementById("delete-venture-password");
+const deleteVentureError = document.getElementById("delete-venture-error");
+const confirmDeleteVentureButton = document.getElementById("confirm-delete-venture");
+let deletingVentureId = null;
 
 function onlyDigits(value) {
   return value.replace(/\D/g, "");
@@ -109,14 +122,63 @@ ventureCepInput.addEventListener("input", () => {
 
 ventureCepInput.addEventListener("blur", fillAddressByCep);
 
+function setVentureCreateFieldsDisabled(disabled) {
+  document.querySelectorAll("#venture-cnpj-field input").forEach((input) => {
+    input.disabled = disabled;
+  });
+}
+
 function openVentureModal() {
+  editingVentureId = null;
   ventureError.innerText = "";
+  ventureModalTitle.innerText = "Novo empreendimento";
+  ventureSubmitButton.innerText = "Cadastrar empreendimento";
+  ventureModal.classList.remove("modal--editing");
+  setVentureCreateFieldsDisabled(false);
   ventureModal.classList.add("modal--open");
 }
 
 function closeVentureModal() {
   ventureModal.classList.remove("modal--open");
+  ventureModal.classList.remove("modal--editing");
   ventureForm.reset();
+  editingVentureId = null;
+  ventureError.innerText = "";
+  ventureModalTitle.innerText = "Novo empreendimento";
+  ventureSubmitButton.innerText = "Cadastrar empreendimento";
+  setVentureCreateFieldsDisabled(false);
+}
+
+async function openEditVentureModal(idEmpreendimento) {
+  editingVentureId = idEmpreendimento;
+  ventureError.innerText = "";
+  ventureForm.reset();
+  ventureModalTitle.innerText = "Editar empreendimento";
+  ventureSubmitButton.innerText = "Salvar alterações";
+  ventureModal.classList.add("modal--editing");
+  setVentureCreateFieldsDisabled(true);
+  ventureModal.classList.add("modal--open");
+
+  try {
+    const response = await fetch(`http://localhost:7000/api/empreendimentos/${idEmpreendimento}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.erro || "Nao foi possivel carregar o empreendimento.");
+    }
+
+    document.getElementById("venture-name").value = data.nome || "";
+    document.getElementById("venture-cnpj").value = data.cnpj || "";
+    document.getElementById("venture-cep").value = formatCep(data.endereco?.cep || "");
+    document.getElementById("venture-state").value = data.endereco?.estado || "";
+    document.getElementById("venture-city").value = data.endereco?.cidade || "";
+    document.getElementById("venture-neighborhood").value = data.endereco?.bairro || "";
+    document.getElementById("venture-street").value = data.endereco?.logradouro || "";
+    document.getElementById("venture-number").value = data.endereco?.numero ?? "";
+  } catch (error) {
+    closeVentureModal();
+    alert(error.message);
+  }
 }
 
 openVentureModalButton.addEventListener("click", openVentureModal);
@@ -128,11 +190,146 @@ ventureModal.addEventListener("click", (event) => {
   }
 });
 
+function openDeleteVentureModal(idEmpreendimento, nomeEmpreendimento) {
+  deletingVentureId = idEmpreendimento;
+  deleteVentureName.innerText = nomeEmpreendimento || "este empreendimento";
+  deleteVentureError.innerText = "";
+  deleteVentureForm.reset();
+  confirmDeleteVentureButton.disabled = false;
+  confirmDeleteVentureButton.innerText = "Excluir";
+  deleteVentureModal.classList.add("modal--open");
+  deleteVenturePassword.focus();
+}
+
+function closeDeleteVentureModal() {
+  deleteVentureModal.classList.remove("modal--open");
+  deleteVentureForm.reset();
+  deleteVentureError.innerText = "";
+  deleteVentureName.innerText = "";
+  deletingVentureId = null;
+  confirmDeleteVentureButton.disabled = false;
+  confirmDeleteVentureButton.innerText = "Excluir";
+}
+
+closeDeleteVentureModalButton.addEventListener("click", closeDeleteVentureModal);
+cancelDeleteVentureButton.addEventListener("click", closeDeleteVentureModal);
+
+deleteVentureModal.addEventListener("click", (event) => {
+  if (event.target === deleteVentureModal) {
+    closeDeleteVentureModal();
+  }
+});
+
+deleteVentureForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const idUsuario = localStorage.getItem("idUsuario");
+  const senha = deleteVenturePassword.value.trim();
+
+  if (!deletingVentureId) {
+    deleteVentureError.innerText = "Selecione um empreendimento para excluir.";
+    return;
+  }
+
+  if (!idUsuario) {
+    deleteVentureError.innerText = "Cadastre ou acesse um usuario antes de excluir empreendimentos.";
+    return;
+  }
+
+  if (!senha) {
+    deleteVentureError.innerText = "Informe sua senha.";
+    return;
+  }
+
+  deleteVentureError.innerText = "";
+  confirmDeleteVentureButton.disabled = true;
+  confirmDeleteVentureButton.innerText = "Excluindo...";
+
+  try {
+    const response = await fetch(`http://localhost:7000/api/empreendimentos/${deletingVentureId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        idUsuario: Number(idUsuario),
+        senha
+      })
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await response.json()
+      : { mensagem: await response.text() };
+
+    if (!response.ok) {
+      throw new Error(data.erro || "Nao foi possivel excluir o empreendimento.");
+    }
+
+    if (localStorage.getItem("idEmpreendimento") === String(deletingVentureId)) {
+      localStorage.removeItem("idEmpreendimento");
+    }
+
+    closeDeleteVentureModal();
+    await listResumeVentures();
+    await loadPurchase();
+  } catch (error) {
+    deleteVentureError.innerText = error.message;
+  } finally {
+    confirmDeleteVentureButton.disabled = false;
+    confirmDeleteVentureButton.innerText = "Excluir";
+  }
+});
+
 ventureForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const idUsuario = localStorage.getItem("idUsuario");
-  const submitButton = ventureForm.querySelector("button[type='submit']");
+  const submitButton = ventureSubmitButton;
+
+  if (editingVentureId) {
+    const empreendimento = {
+      nome: document.getElementById("venture-name").value.trim(),
+      endereco: {
+        cep: document.getElementById("venture-cep").value.trim(),
+        estado: document.getElementById("venture-state").value.trim(),
+        cidade: document.getElementById("venture-city").value.trim(),
+        bairro: document.getElementById("venture-neighborhood").value.trim(),
+        logradouro: document.getElementById("venture-street").value.trim(),
+        numero: Number(document.getElementById("venture-number").value)
+      }
+    };
+
+    ventureError.innerText = "";
+    submitButton.disabled = true;
+    submitButton.innerText = "Salvando...";
+
+    try {
+      const response = await fetch(`http://localhost:7000/api/empreendimentos/${editingVentureId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(empreendimento)
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : { mensagem: await response.text() };
+
+      if (!response.ok) {
+        throw new Error(data.erro || "Nao foi possivel atualizar o empreendimento.");
+      }
+
+      closeVentureModal();
+      await listResumeVentures();
+      await loadPurchase();
+    } catch (error) {
+      ventureError.innerText = error.message;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.innerText = editingVentureId ? "Salvar alterações" : "Cadastrar empreendimento";
+    }
+
+    return;
+  }
 
   if (!idUsuario) {
     ventureError.innerText = "Cadastre um usuario antes de criar empreendimentos.";
@@ -282,12 +479,18 @@ async function listResumeVentures() {
         const editButton = document.createElement("button")
         editButton.innerText = "Editar"
         editButton.setAttribute("class", "button-edit")
-        editButton.addEventListener("click", (event) => event.stopPropagation())
+        editButton.addEventListener("click", (event) => {
+          event.stopPropagation()
+          openEditVentureModal(d.idEmpreendimento)
+        })
 
         const deleteButton = document.createElement("button")
         deleteButton.innerText = "Excluir"
         deleteButton.setAttribute("class", "button-delete")
-        deleteButton.addEventListener("click", (event) => event.stopPropagation())
+        deleteButton.addEventListener("click", (event) => {
+          event.stopPropagation()
+          openDeleteVentureModal(d.idEmpreendimento, d.nomeEmpreendimento)
+        })
 
         const fragment = document.createElement("div")
         fragment.setAttribute("class", "div-actions")

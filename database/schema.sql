@@ -7,7 +7,9 @@ USE estoque_db;
 CREATE TABLE dono (
                       idUsuario INT AUTO_INCREMENT PRIMARY KEY,
                       nome VARCHAR(100) NOT NULL,
-                      cpf VARCHAR(16) NOT NULL UNIQUE,
+                      cpf VARCHAR(16) NULL,
+                      cpf_encrypted TEXT NOT NULL,
+                      cpf_hash VARCHAR(64) NOT NULL UNIQUE,
                       email VARCHAR(100) NOT NULL UNIQUE,
                       senha VARCHAR(255) NOT NULL -- Aumentado para suportar criptografia
 );
@@ -93,4 +95,3 @@ ALTER TABLE estoque ADD COLUMN quantidadeInicial INT NOT NULL DEFAULT 0;
 -- Primeiro, vamos permitir que esses campos sejam nulos para teste:
 ALTER TABLE empreendimento MODIFY idUsuario INT NULL;
 ALTER TABLE empreendimento MODIFY idEndereco INT NULL;
-

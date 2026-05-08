@@ -1,4 +1,4 @@
-﻿package com.meuprojeto.dao;
+package com.meuprojeto.dao;
 
 import com.meuprojeto.factory.ConnectionFactory;
 import java.sql.Connection;

@@ -1,4 +1,4 @@
-﻿package com.meuprojeto.factory;
+package com.meuprojeto.factory;
 
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
@@ -16,7 +16,7 @@ public class ConnectionFactory {
 
     // Dados de acesso ao seu MySQL Local
     private static final String USERNAME = "root";
-    private static final String PASSWORD = ""; // Sua senha do banco
+    private static final String PASSWORD = "123456"; // Sua senha do banco
     // URL: Aponta para o endereÃ§o do banco (localhost) e o nome da base (estoque_db)
     private static final String DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db";
 

@@ -22,7 +22,13 @@ document.getElementById('formCadastro').addEventListener('submit', async (event)
             body: JSON.stringify(usuario)
         });
 
-        const dados = await resposta.json();
+        const textoResposta = await resposta.text();
+        let dados = {};
+        try {
+            dados = textoResposta ? JSON.parse(textoResposta) : {};
+        } catch {
+            dados = { erro: textoResposta };
+        }
 
         if (!resposta.ok) {
             throw new Error(dados.erro || "Nao foi possivel cadastrar o usuario.");

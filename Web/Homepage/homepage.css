@@ -341,6 +341,10 @@ header h1 {
   padding: 30px;
 }
 
+.modal__content--small {
+  width: min(100%, 420px);
+}
+
 .modal__content h2 {
   color: #1a222d;
   font-size: 22px;
@@ -387,6 +391,25 @@ header h1 {
 
 .modal__content .btn {
   width: 100%;
+}
+
+.modal__text {
+  color: #555;
+  line-height: 1.5;
+}
+
+.modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn--secondary {
+  background: #667085;
+}
+
+.btn--danger {
+  background: #e74a3b;
 }
 
 .modal__close {
