@@ -2,20 +2,48 @@ let toggleButton = document.getElementById("toggle-menu");
 let sidebar = document.getElementById("sidebar");
 let dashboard = document.querySelector(".dashboard")
 
-function loadUserFromRegister() {
-  const params = new URLSearchParams(window.location.search);
-  const idUsuarioUrl = params.get("idUsuario");
+function logout() {
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("idUsuario");
+  localStorage.removeItem("nomeUsuario");
+  localStorage.removeItem("emailUsuario");
+  localStorage.removeItem("idEmpreendimento");
+  window.location.href = "/index.html";
+}
 
-  if (idUsuarioUrl) {
-    localStorage.setItem("idUsuario", idUsuarioUrl);
+async function apiFetch(url, options = {}) {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    logout();
+    throw new Error("Sessao expirada.");
   }
 
-  const idUsuario = localStorage.getItem("idUsuario");
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`
+  };
+
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    logout();
+    throw new Error("Sessao expirada.");
+  }
+
+  return response;
+}
+
+function loadUserFromRegister() {
   const nomeUsuario = localStorage.getItem("nomeUsuario");
+  const emailUsuario = localStorage.getItem("emailUsuario");
   const userLabel = document.getElementById("homepage-user");
 
-  if (userLabel && idUsuario) {
-    userLabel.innerText = nomeUsuario ? `${nomeUsuario} (#${idUsuario})` : `ID #${idUsuario}`;
+  if (!localStorage.getItem("authToken")) {
+    logout();
+    return;
+  }
+
+  if (userLabel) {
+    userLabel.innerText = nomeUsuario || emailUsuario || "Usuario logado";
   }
 }
 
@@ -23,19 +51,14 @@ loadUserFromRegister();
 
 const logoutButton = document.getElementById("logout-button");
 if (logoutButton) {
-  logoutButton.addEventListener("click", () => {
-    localStorage.removeItem("idUsuario");
-    localStorage.removeItem("nomeUsuario");
-    localStorage.removeItem("idEmpreendimento");
-    window.location.href = "/index.html";
-  });
+  logoutButton.addEventListener("click", logout);
 }
 
 function openEnterpriseWorkspace(idEmpreendimento) {
   if (!idEmpreendimento) return;
 
   localStorage.setItem("idEmpreendimento", idEmpreendimento);
-  window.location.href = `../Enterprise/enterprise.html?idEmpreendimento=${idEmpreendimento}`;
+  window.location.href = "../Enterprise/enterprise.html";
 }
 
 function formatCurrency(value) {
@@ -160,7 +183,7 @@ async function openEditVentureModal(idEmpreendimento) {
   ventureModal.classList.add("modal--open");
 
   try {
-    const response = await fetch(`http://localhost:7000/api/empreendimentos/${idEmpreendimento}`);
+    const response = await apiFetch(`http://localhost:7000/api/empreendimentos/${idEmpreendimento}`);
     const data = await response.json();
 
     if (!response.ok) {
@@ -223,16 +246,10 @@ deleteVentureModal.addEventListener("click", (event) => {
 deleteVentureForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const idUsuario = localStorage.getItem("idUsuario");
   const senha = deleteVenturePassword.value.trim();
 
   if (!deletingVentureId) {
     deleteVentureError.innerText = "Selecione um empreendimento para excluir.";
-    return;
-  }
-
-  if (!idUsuario) {
-    deleteVentureError.innerText = "Cadastre ou acesse um usuario antes de excluir empreendimentos.";
     return;
   }
 
@@ -246,11 +263,10 @@ deleteVentureForm.addEventListener("submit", async (event) => {
   confirmDeleteVentureButton.innerText = "Excluindo...";
 
   try {
-    const response = await fetch(`http://localhost:7000/api/empreendimentos/${deletingVentureId}`, {
+    const response = await apiFetch(`http://localhost:7000/api/empreendimentos/${deletingVentureId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        idUsuario: Number(idUsuario),
         senha
       })
     });
@@ -282,7 +298,6 @@ deleteVentureForm.addEventListener("submit", async (event) => {
 ventureForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const idUsuario = localStorage.getItem("idUsuario");
   const submitButton = ventureSubmitButton;
 
   if (editingVentureId) {
@@ -303,7 +318,7 @@ ventureForm.addEventListener("submit", async (event) => {
     submitButton.innerText = "Salvando...";
 
     try {
-      const response = await fetch(`http://localhost:7000/api/empreendimentos/${editingVentureId}`, {
+      const response = await apiFetch(`http://localhost:7000/api/empreendimentos/${editingVentureId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(empreendimento)
@@ -331,15 +346,9 @@ ventureForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (!idUsuario) {
-    ventureError.innerText = "Cadastre um usuario antes de criar empreendimentos.";
-    return;
-  }
-
   const empreendimento = {
     nome: document.getElementById("venture-name").value.trim(),
     cnpj: document.getElementById("venture-cnpj").value.trim(),
-    idUsuario: Number(idUsuario),
     endereco: {
       cep: document.getElementById("venture-cep").value.trim(),
       estado: document.getElementById("venture-state").value.trim(),
@@ -355,7 +364,7 @@ ventureForm.addEventListener("submit", async (event) => {
   submitButton.innerText = "Cadastrando...";
 
   try {
-    const response = await fetch("http://localhost:7000/api/empreendimentos", {
+    const response = await apiFetch("http://localhost:7000/api/empreendimentos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(empreendimento)
@@ -383,9 +392,7 @@ ventureForm.addEventListener("submit", async (event) => {
 
 async function loadPurchase() {
   try {
-    const idUsuario = localStorage.getItem("idUsuario");
-    const query = idUsuario ? `?idUsuario=${idUsuario}` : "";
-    const resposta = await fetch (`http://localhost:7000/api/dashboard/total${query}`)
+    const resposta = await apiFetch("http://localhost:7000/api/dashboard/total")
     const data = await resposta.json();
     
     console.log(data);
@@ -410,10 +417,7 @@ async function listResumeVentures() {
     try {
       document.getElementById("dashboard__preview").innerHTML = "";
       document.getElementById("sidebar__ventures").innerHTML = "";
-      const idUsuario = localStorage.getItem("idUsuario");
-      const query = idUsuario ? `?idUsuario=${idUsuario}` : "";
-
-      const response = await fetch(`http://localhost:7000/api/dashboard/empreendimentos${query}`);
+      const response = await apiFetch("http://localhost:7000/api/dashboard/empreendimentos");
   
       if (!response.ok) {
         throw new Error("Erro na requisição");

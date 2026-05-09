@@ -8,7 +8,11 @@ import com.meuprojeto.model.DashboardDTO;
 import com.meuprojeto.model.Venda;
 import com.meuprojeto.model.Produto;
 import com.meuprojeto.model.Usuario;
+import com.meuprojeto.security.JwtUtil;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.UnauthorizedResponse;
 import io.javalin.http.staticfiles.Location;
 
 import java.sql.Connection;
@@ -72,8 +76,9 @@ public class AppRest {
 
             try {
                 int idUsuario = usuarioDAO.salvar(usuario);
+                usuario.setIdUsuario(idUsuario);
                 ctx.status(201).json(Map.of(
-                        "idUsuario", idUsuario,
+                        "token", JwtUtil.gerarToken(usuario),
                         "nome", usuario.getNome(),
                         "email", usuario.getEmail()
                 ));
@@ -108,7 +113,7 @@ public class AppRest {
                 }
 
                 ctx.json(Map.of(
-                        "idUsuario", usuario.getIdUsuario(),
+                        "token", JwtUtil.gerarToken(usuario),
                         "nome", usuario.getNome(),
                         "email", usuario.getEmail()
                 ));
@@ -118,42 +123,69 @@ public class AppRest {
         });
 
         app.get("/api/produtos", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             String idEmpreendimento = ctx.queryParam("idEmpreendimento");
-            int idEmp = idEmpreendimento != null && !idEmpreendimento.isBlank()
-                    ? Integer.parseInt(idEmpreendimento)
-                    : 1;
+            if (idEmpreendimento == null || idEmpreendimento.isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
+                return;
+            }
+            int idEmp = Integer.parseInt(idEmpreendimento);
+            requireEmpreendimentoOwner(idUsuario, idEmp);
             ctx.json(produtoDAO.listar(idEmp));
         });
 
         // Cadastra novo produto
         app.post("/api/produtos", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             Produto p = ctx.bodyAsClass(Produto.class);
-            // Garante que o produto tenha um vínculo inicial caso o front esqueça de enviar
-            if (p.getIdEmpreendimento() == 0) p.setIdEmpreendimento(1);
+            if (p.getIdEmpreendimento() == 0) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento do produto."));
+                return;
+            }
+            requireEmpreendimentoOwner(idUsuario, p.getIdEmpreendimento());
             produtoDAO.salvar(p);
             ctx.status(201).result("Cadastrado com sucesso!");
         });
 
         // Atualiza dados de um produto existente
         app.put("/api/produtos", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             Produto p = ctx.bodyAsClass(Produto.class);
+            requireEmpreendimentoOwner(idUsuario, p.getIdEmpreendimento());
+            requireProdutoNoEmpreendimento(p.getId(), p.getIdEmpreendimento());
             produtoDAO.atualizar(p);
             ctx.result("Atualizado com sucesso");
         });
 
         // Remove um produto pelo ID passado na URL
         app.delete("/api/produtos/{id}", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             int id = Integer.parseInt(ctx.pathParam("id"));
-            produtoDAO.deletar(id);
+            String idEmpreendimento = ctx.queryParam("idEmpreendimento");
+            if (idEmpreendimento == null || idEmpreendimento.isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento do produto."));
+                return;
+            }
+            int idEmp = Integer.parseInt(idEmpreendimento);
+            requireEmpreendimentoOwner(idUsuario, idEmp);
+            requireProdutoNoEmpreendimento(id, idEmp);
+            produtoDAO.deletar(id, idEmp);
             ctx.result("Removido com sucesso");
         });
 
         // Baixa manual de estoque (usado no momento da venda ou perda)
         app.post("/api/produtos/subtrair", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             Map<String, Object> dados = ctx.bodyAsClass(Map.class);
             int id = ((Number) dados.get("id")).intValue();
             int qtd = ((Number) dados.get("quantidadeVendida")).intValue();
-            int idEmp = dados.containsKey("idEmpreendimento") ? ((Number) dados.get("idEmpreendimento")).intValue() : 1;
+            if (!dados.containsKey("idEmpreendimento")) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
+                return;
+            }
+            int idEmp = ((Number) dados.get("idEmpreendimento")).intValue();
+            requireEmpreendimentoOwner(idUsuario, idEmp);
+            requireProdutoNoEmpreendimento(id, idEmp);
             produtoDAO.subtrairEstoque(id, qtd, idEmp);
             ctx.status(200).result("Estoque atualizado");
         });
@@ -162,19 +194,25 @@ public class AppRest {
 
         // Retorna todo o histórico de vendas
         app.get("/api/vendas", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             String idEmpreendimento = ctx.queryParam("idEmpreendimento");
             if (idEmpreendimento != null && !idEmpreendimento.isBlank()) {
-                ctx.json(vendaDAO.listarPorEmpreendimento(Integer.parseInt(idEmpreendimento)));
+                int idEmp = Integer.parseInt(idEmpreendimento);
+                requireEmpreendimentoOwner(idUsuario, idEmp);
+                ctx.json(vendaDAO.listarPorEmpreendimento(idEmp));
                 return;
             }
 
-            ctx.json(vendaDAO.listar());
+            ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
         });
 
         // Registra uma nova venda concluída
         app.post("/api/vendas", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
+            Venda venda = ctx.bodyAsClass(Venda.class);
+            requireEmpreendimentoOwner(idUsuario, venda.getIdEmpreendimento());
+
             try {
-                Venda venda = ctx.bodyAsClass(Venda.class);
                 vendaDAO.salvar(venda);
                 ctx.status(201).json(Map.of("mensagem", "Venda realizada com sucesso!"));
             } catch (Exception e) {
@@ -185,7 +223,9 @@ public class AppRest {
         // --- 🏢 GRUPO: EMPREENDIMENTOS ---
 
         app.get("/api/empreendimentos/{id}", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             int idEmpreendimento = Integer.parseInt(ctx.pathParam("id"));
+            requireEmpreendimentoOwner(idUsuario, idEmpreendimento);
 
             String sql = "SELECT e.idEmpreendimento, e.nome, e.CNPJ, en.CEP, en.estado, en.cidade, en.bairro, en.lougradouro, en.numero " +
                     "FROM empreendimento e " +
@@ -231,6 +271,7 @@ public class AppRest {
 
         // Cadastra uma nova unidade de negócio (Loja/Oficina/Padaria)
         app.post("/api/empreendimentos", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             Map<String, Object> dados = ctx.bodyAsClass(Map.class);
             String nome = (String) dados.get("nome");
             String cnpj = (String) dados.get("cnpj");
@@ -238,13 +279,11 @@ public class AppRest {
 
             if (nome == null || nome.isBlank()
                     || cnpj == null || cnpj.isBlank()
-                    || dados.get("idUsuario") == null
                     || endereco == null) {
-                ctx.status(400).json(Map.of("erro", "Preencha nome, CNPJ, idUsuario e endereco."));
+                ctx.status(400).json(Map.of("erro", "Preencha nome, CNPJ e endereco."));
                 return;
             }
 
-            int idUsuario = ((Number) dados.get("idUsuario")).intValue();
             String cep = (String) endereco.get("cep");
             String estado = (String) endereco.get("estado");
             String cidade = (String) endereco.get("cidade");
@@ -309,7 +348,9 @@ public class AppRest {
         });
 
         app.put("/api/empreendimentos/{id}", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             int idEmpreendimento = Integer.parseInt(ctx.pathParam("id"));
+            requireEmpreendimentoOwner(idUsuario, idEmpreendimento);
             Map<String, Object> dados = ctx.bodyAsClass(Map.class);
             String nome = (String) dados.get("nome");
             Map<String, Object> endereco = (Map<String, Object>) dados.get("endereco");
@@ -421,16 +462,16 @@ public class AppRest {
         });
 
         app.delete("/api/empreendimentos/{id}", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
             int idEmpreendimento = Integer.parseInt(ctx.pathParam("id"));
             Map<String, Object> dados = ctx.bodyAsClass(Map.class);
 
-            if (dados.get("idUsuario") == null || dados.get("senha") == null
+            if (dados.get("senha") == null
                     || String.valueOf(dados.get("senha")).isBlank()) {
                 ctx.status(400).json(Map.of("erro", "Informe a senha para excluir o empreendimento."));
                 return;
             }
 
-            int idUsuario = ((Number) dados.get("idUsuario")).intValue();
             String senha = String.valueOf(dados.get("senha"));
 
             try (Connection conn = ConnectionFactory.criarConexao()) {
@@ -557,21 +598,14 @@ public class AppRest {
 
         // Retorna os dados das BARRAS BRANCAS (Resumo por loja)
         app.get("/api/dashboard/empreendimentos", ctx -> {
-            String idUsuario = ctx.queryParam("idUsuario");
-            if (idUsuario != null && !idUsuario.isBlank()) {
-                ctx.json(vendaDAO.listarResumoEmpreendimentosPorUsuario(Integer.parseInt(idUsuario)));
-                return;
-            }
-
-            ctx.json(vendaDAO.listarResumoEmpreendimentos());
+            int idUsuario = requireAuthenticatedUser(ctx);
+            ctx.json(vendaDAO.listarResumoEmpreendimentosPorUsuario(idUsuario));
         });
 
         // Retorna os dados dos CARDS COLORIDOS (Soma total de todas as lojas)
         app.get("/api/dashboard/total", ctx -> {
-            String idUsuario = ctx.queryParam("idUsuario");
-            List<DashboardDTO> lista = idUsuario != null && !idUsuario.isBlank()
-                    ? vendaDAO.listarResumoEmpreendimentosPorUsuario(Integer.parseInt(idUsuario))
-                    : vendaDAO.listarResumoEmpreendimentos();
+            int idUsuario = requireAuthenticatedUser(ctx);
+            List<DashboardDTO> lista = vendaDAO.listarResumoEmpreendimentosPorUsuario(idUsuario);
             double totalBruto = lista.stream().mapToDouble(DashboardDTO::getLucroBruto).sum();
             double totalGasto = lista.stream().mapToDouble(DashboardDTO::getGastoBruto).sum();
             ctx.json(Map.of(
@@ -582,5 +616,56 @@ public class AppRest {
         });
 
         System.out.println("SERVIDOR ON: http://localhost:7000/index.html");
+    }
+
+    private static int requireAuthenticatedUser(Context ctx) {
+        String authorization = ctx.header("Authorization");
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new UnauthorizedResponse("Token de autenticacao nao informado.");
+        }
+
+        try {
+            return JwtUtil.validarToken(authorization.substring("Bearer ".length()).trim());
+        } catch (Exception e) {
+            throw new UnauthorizedResponse("Token de autenticacao invalido ou expirado.");
+        }
+    }
+
+    private static void requireEmpreendimentoOwner(int idUsuario, int idEmpreendimento) throws Exception {
+        if (!usuarioDonoEmpreendimento(idUsuario, idEmpreendimento)) {
+            throw new ForbiddenResponse("Este empreendimento nao pertence ao usuario logado.");
+        }
+    }
+
+    private static void requireProdutoNoEmpreendimento(int idProduto, int idEmpreendimento) throws Exception {
+        String sql = "SELECT COUNT(*) AS total FROM estoque WHERE idProduto = ? AND idEmpreendimento = ?";
+
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql)) {
+            pstm.setInt(1, idProduto);
+            pstm.setInt(2, idEmpreendimento);
+
+            try (ResultSet rs = pstm.executeQuery()) {
+                rs.next();
+                if (rs.getInt("total") == 0) {
+                    throw new ForbiddenResponse("Produto nao pertence ao empreendimento informado.");
+                }
+            }
+        }
+    }
+
+    private static boolean usuarioDonoEmpreendimento(int idUsuario, int idEmpreendimento) throws Exception {
+        String sql = "SELECT COUNT(*) AS total FROM empreendimento WHERE idEmpreendimento = ? AND idUsuario = ?";
+
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql)) {
+            pstm.setInt(1, idEmpreendimento);
+            pstm.setInt(2, idUsuario);
+
+            try (ResultSet rs = pstm.executeQuery()) {
+                rs.next();
+                return rs.getInt("total") > 0;
+            }
+        }
     }
 }

@@ -1,21 +1,49 @@
-﻿function carregarUsuarioDaUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const idUsuarioUrl = params.get('idUsuario');
+﻿function logout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('idUsuario');
+    localStorage.removeItem('nomeUsuario');
+    localStorage.removeItem('emailUsuario');
+    localStorage.removeItem('idEmpreendimento');
+    window.location.href = '/index.html';
+}
 
-    if (idUsuarioUrl) {
-        localStorage.setItem('idUsuario', idUsuarioUrl);
+async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        logout();
+        throw new Error('Sessao expirada.');
     }
 
-    const idUsuario = localStorage.getItem('idUsuario');
+    const headers = {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`
+    };
+
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401) {
+        logout();
+        throw new Error('Sessao expirada.');
+    }
+
+    return response;
+}
+
+function carregarUsuarioDaSessao() {
     const nomeUsuario = localStorage.getItem('nomeUsuario');
+    const emailUsuario = localStorage.getItem('emailUsuario');
     const labelUsuario = document.getElementById('usuarioLogado');
 
-    if (labelUsuario && idUsuario) {
-        labelUsuario.innerText = nomeUsuario ? `${nomeUsuario} (#${idUsuario})` : `ID #${idUsuario}`;
+    if (!localStorage.getItem('authToken')) {
+        logout();
+        return;
+    }
+
+    if (labelUsuario) {
+        labelUsuario.innerText = nomeUsuario || emailUsuario || 'Usuario logado';
     }
 }
 
-carregarUsuarioDaUrl();
+carregarUsuarioDaSessao();
 
 function configurarRetornoHomepage() {
     const linkHomepage = document.getElementById('linkHomepage');
@@ -23,31 +51,32 @@ function configurarRetornoHomepage() {
 
     linkHomepage.addEventListener('click', (event) => {
         event.preventDefault();
-        const idUsuario = localStorage.getItem('idUsuario');
-        const query = idUsuario ? `?idUsuario=${idUsuario}` : "";
-        window.location.href = `../Homepage/homepage.html${query}`;
+        window.location.href = '../Homepage/homepage.html';
     });
 }
 
 configurarRetornoHomepage();
 
-function carregarEmpreendimentoDaUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const idEmpreendimentoUrl = params.get('idEmpreendimento');
-
-    if (idEmpreendimentoUrl) {
-        localStorage.setItem('idEmpreendimento', idEmpreendimentoUrl);
+function carregarEmpreendimentoDaSessao() {
+    const idEmpreendimento = localStorage.getItem('idEmpreendimento');
+    if (!idEmpreendimento) {
+        window.location.href = '../Homepage/homepage.html';
+        return null;
     }
 
-    return localStorage.getItem('idEmpreendimento') || "1";
+    return idEmpreendimento;
 }
 
-const idEmpreendimentoAtual = carregarEmpreendimentoDaUrl();
-const produtosUrl = `http://localhost:7000/api/produtos?idEmpreendimento=${idEmpreendimentoAtual}`;
+const idEmpreendimentoAtual = carregarEmpreendimentoDaSessao();
+const produtosUrl = idEmpreendimentoAtual
+    ? `http://localhost:7000/api/produtos?idEmpreendimento=${idEmpreendimentoAtual}`
+    : null;
 
 async function carregarProdutos() {
+    if (!produtosUrl) return;
+
     try {
-        const resposta = await fetch(produtosUrl);
+        const resposta = await apiFetch(produtosUrl);
         const produtos = await resposta.json();
 
         const corpoTabela = document.getElementById('tabela-corpo');
@@ -101,7 +130,7 @@ function fecharModal() {
 
 async function deletarProduto(id) {
     if (confirm("Tem certeza que deseja excluir este produto?")) {
-        await fetch(`http://localhost:7000/api/produtos/${id}`, { method: 'DELETE' });
+        await apiFetch(`http://localhost:7000/api/produtos/${id}?idEmpreendimento=${idEmpreendimentoAtual}`, { method: 'DELETE' });
         carregarProdutos();
     }
 }
@@ -133,7 +162,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
 
     if (id) produto.id = parseInt(id);
 
-    await fetch('http://localhost:7000/api/produtos', {
+    await apiFetch('http://localhost:7000/api/produtos', {
         method: id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(produto)
@@ -187,7 +216,7 @@ async function abrirModalPDV() {
     carrinho = [];
     renderizarCarrinho();
 
-    const resp = await fetch(produtosUrl);
+    const resp = await apiFetch(produtosUrl);
     todosOsProdutos = await resp.json();
     renderizarListaProdutosPDV(todosOsProdutos);
 }
@@ -251,7 +280,7 @@ function removerDoCarrinho(index) {
 
 async function carregarHistoricoVendas() {
     try {
-        const resposta = await fetch(`http://localhost:7000/api/vendas?idEmpreendimento=${idEmpreendimentoAtual}`);
+        const resposta = await apiFetch(`http://localhost:7000/api/vendas?idEmpreendimento=${idEmpreendimentoAtual}`);
         const vendas = await resposta.json();
         const corpoVendas = document.getElementById('corpoVendas');
         corpoVendas.innerHTML = "";
@@ -294,7 +323,7 @@ async function finalizarVenda() {
     }));
 
     try {
-        const vendaResponse = await fetch('http://localhost:7000/api/vendas', {
+        const vendaResponse = await apiFetch('http://localhost:7000/api/vendas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -310,7 +339,7 @@ async function finalizarVenda() {
         }
 
         for (const item of carrinho) {
-            await fetch('http://localhost:7000/api/produtos/subtrair', {
+            await apiFetch('http://localhost:7000/api/produtos/subtrair', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

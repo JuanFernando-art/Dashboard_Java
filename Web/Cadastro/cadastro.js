@@ -34,9 +34,11 @@ document.getElementById('formCadastro').addEventListener('submit', async (event)
             throw new Error(dados.erro || "Nao foi possivel cadastrar o usuario.");
         }
 
-        localStorage.setItem('idUsuario', dados.idUsuario);
+        localStorage.setItem('authToken', dados.token);
         localStorage.setItem('nomeUsuario', dados.nome);
-        window.location.href = `/Homepage/homepage.html?idUsuario=${dados.idUsuario}`;
+        localStorage.setItem('emailUsuario', dados.email);
+        localStorage.removeItem('idUsuario');
+        window.location.href = '/Homepage/homepage.html';
     } catch (error) {
         erro.innerText = error.message;
         botao.disabled = false;

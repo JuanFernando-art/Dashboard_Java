@@ -162,4 +162,33 @@ public class ProdutoDAO {
             System.out.println("❌ Erro ao deletar: " + e.getMessage());
         }
     }
+
+    public void deletar(int id, int idEmpreendimento) {
+        String sqlEstoque = "DELETE FROM estoque WHERE idProduto = ? AND idEmpreendimento = ?";
+        String sqlProdutoOrfao = "DELETE FROM produto WHERE idProduto = ? " +
+                "AND NOT EXISTS (SELECT 1 FROM estoque WHERE estoque.idProduto = produto.idProduto) " +
+                "AND NOT EXISTS (SELECT 1 FROM itemVenda WHERE itemVenda.idProduto = produto.idProduto)";
+
+        try (Connection conn = ConnectionFactory.criarConexao()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement pstmEstoque = conn.prepareStatement(sqlEstoque);
+                 PreparedStatement pstmProduto = conn.prepareStatement(sqlProdutoOrfao)) {
+                pstmEstoque.setInt(1, id);
+                pstmEstoque.setInt(2, idEmpreendimento);
+                pstmEstoque.executeUpdate();
+
+                pstmProduto.setInt(1, id);
+                pstmProduto.executeUpdate();
+
+                conn.commit();
+                System.out.println("Produto removido com sucesso!");
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao deletar: " + e.getMessage());
+        }
+    }
 }
