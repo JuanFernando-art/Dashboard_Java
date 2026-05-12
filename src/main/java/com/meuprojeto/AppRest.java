@@ -40,7 +40,7 @@ public class AppRest {
         UsuarioDAO usuarioDAO = new UsuarioDAO();
         CategoriaDAO categoriaDAO = new CategoriaDAO();
 
-        // Inicializa o Javalin e configura a pasta de arquivos web
+        // Inicializa o Javalin e configura a pasta de arquivos web 
         var app = Javalin.create(config -> {
             config.staticFiles.add("./Web", Location.EXTERNAL);
         }).start(7000);
