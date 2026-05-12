@@ -101,27 +101,41 @@ public class AppRest {
         // --- 📂 GRUPO: CATEGORIAS ---
 
         app.get("/api/categorias", ctx -> {
-            requireAuthenticatedUser(ctx);
-            ctx.json(categoriaDAO.listarTodas());
+            int idUsuario = requireAuthenticatedUser(ctx);
+            String idEmpStr = ctx.queryParam("idEmpreendimento");
+            if (idEmpStr == null) { ctx.status(400); return; }
+            int idEmp = Integer.parseInt(idEmpStr);
+            requireEmpreendimentoOwner(idUsuario, idEmp);
+            
+            ctx.json(categoriaDAO.listarPorEmpreendimento(idEmp));
         });
 
         app.post("/api/categorias", ctx -> { 
-            requireAuthenticatedUser(ctx);
+            int idUsuario = requireAuthenticatedUser(ctx);
             Categoria cat = ctx.bodyAsClass(Categoria.class);
+            requireEmpreendimentoOwner(idUsuario, cat.getIdEmpreendimento());
+            
             categoriaDAO.salvar(cat);
             ctx.status(201).json(cat);
         });
 
         app.put("/api/categorias", ctx -> {
-            requireAuthenticatedUser(ctx);
+            int idUsuario = requireAuthenticatedUser(ctx);
             Categoria cat = ctx.bodyAsClass(Categoria.class);
+            requireEmpreendimentoOwner(idUsuario, cat.getIdEmpreendimento());
+
             categoriaDAO.atualizar(cat);
             ctx.json(cat);
         });
 
         app.delete("/api/categorias/{id}", ctx -> {
-            requireAuthenticatedUser(ctx);
+            int idUsuario = requireAuthenticatedUser(ctx);
             int id = Integer.parseInt(ctx.pathParam("id"));
+            
+            Categoria cat = categoriaDAO.buscarPorId(id);
+            if (cat == null) { ctx.status(404); return; }
+            requireEmpreendimentoOwner(idUsuario, cat.getIdEmpreendimento());
+
             categoriaDAO.deletar(id);
             ctx.result("Categoria removida com sucesso");
         });

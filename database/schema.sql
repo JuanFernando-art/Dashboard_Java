@@ -100,3 +100,6 @@ ALTER TABLE empreendimento MODIFY idEndereco INT NULL;
 
 ALTER TABLE produto ADD COLUMN idCategoria INT NULL;
 ALTER TABLE produto ADD CONSTRAINT fk_produto_categoria FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria);
+
+ALTER TABLE categoria ADD COLUMN idEmpreendimento INT NOT NULL;
+ALTER TABLE categoria ADD CONSTRAINT fk_categoria_empreendimento FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento);

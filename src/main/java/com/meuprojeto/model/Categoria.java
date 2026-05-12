@@ -4,13 +4,15 @@ public class Categoria {
     private int idCategoria;
     private String nome;
     private Integer idCategoriaPai;
+    private int idEmpreendimento;
 
     public Categoria() {}
 
-    public Categoria(int idCategoria, String nome, Integer idCategoriaPai) {
+    public Categoria(int idCategoria, String nome, Integer idCategoriaPai, int idEmpreendimento) {
         this.idCategoria = idCategoria;
         this.nome = nome;
         this.idCategoriaPai = idCategoriaPai;
+        this.idEmpreendimento = idEmpreendimento;
     }
 
     public int getIdCategoria() {
@@ -35,6 +37,14 @@ public class Categoria {
 
     public void setIdCategoriaPai(Integer idCategoriaPai) {
         this.idCategoriaPai = idCategoriaPai;
+    }
+
+    public int getIdEmpreendimento() {
+        return idEmpreendimento;
+    }
+
+    public void setIdEmpreendimento(int idEmpreendimento) {
+        this.idEmpreendimento = idEmpreendimento;
     }
 
     @Override

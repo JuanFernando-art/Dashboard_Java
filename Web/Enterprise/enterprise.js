@@ -412,7 +412,7 @@ function toggleSecao(idAtiva) {
 
 async function carregarCategorias() {
     try {
-        const resp = await apiFetch(`${API_BASE_URL}/categorias`);
+        const resp = await apiFetch(`${API_BASE_URL}/categorias?idEmpreendimento=${idEmpreendimentoAtual}`);
         const categorias = await resp.json();
         const container = document.getElementById('listaCategoriasArvore');
         if (container) {
@@ -453,7 +453,7 @@ function renderizarArvore(lista, paiId, nivel) {
 
 async function abrirModalSelecaoCategoria() {
     document.getElementById('modalSelecaoCategoria').style.display = 'block';
-    const resp = await apiFetch(`${API_BASE_URL}/categorias`);
+    const resp = await apiFetch(`${API_BASE_URL}/categorias?idEmpreendimento=${idEmpreendimentoAtual}`);
     const categorias = await resp.json();
     const container = document.getElementById('listaSelecaoCategorias');
     container.innerHTML = renderizarArvoreSelecao(categorias, null, 1, categorias);
@@ -518,17 +518,24 @@ function fecharModalCategoria() { document.getElementById('modalCategoria').styl
 
 document.getElementById('formCategoria').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const cat = {
-        idCategoria: document.getElementById('catId').value ? parseInt(document.getElementById('catId').value) : null,
-        nome: document.getElementById('catNome').value,
-        idCategoriaPai: document.getElementById('catPaiId').value ? parseInt(document.getElementById('catPaiId').value) : null
-    };
-    await apiFetch(`${API_BASE_URL}/categorias`, {
-        method: cat.idCategoria ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cat)
-    });
-    fecharModalCategoria(); carregarCategorias();
+    try {
+        const cat = {
+            idCategoria: document.getElementById('catId').value ? parseInt(document.getElementById('catId').value) : null,
+            nome: document.getElementById('catNome').value,
+            idCategoriaPai: document.getElementById('catPaiId').value ? parseInt(document.getElementById('catPaiId').value) : null,
+            idEmpreendimento: parseInt(idEmpreendimentoAtual)
+        };
+        await apiFetch(`${API_BASE_URL}/categorias`, {
+            method: cat.idCategoria ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cat)
+        });
+        fecharModalCategoria(); 
+        carregarCategorias();
+    } catch (erro) {
+        console.error("Erro ao salvar categoria:", erro);
+        alert("Erro ao salvar: " + erro.message);
+    }
 });
 
 async function deletarCategoria(id) {

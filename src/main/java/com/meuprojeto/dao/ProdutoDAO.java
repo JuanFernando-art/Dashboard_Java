@@ -24,7 +24,7 @@ public class ProdutoDAO {
      */
     public void salvar(Produto produto) {
         // SQL para as duas tabelas distintas
-        String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo) VALUES (?, ?, ?)";
+        String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo, idCategoria) VALUES (?, ?, ?, ?)";
         String sqlEstoque = "INSERT INTO estoque (quantidadeEstoque, quantidadeInicial, idProduto, idEmpreendimento) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.criarConexao()) {
@@ -34,6 +34,11 @@ public class ProdutoDAO {
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
             pstmP.setDouble(3, produto.getPrecoCusto());
+            if (produto.getIdCategoria() != null) {
+                pstmP.setInt(4, produto.getIdCategoria());
+            } else {
+                pstmP.setNull(4, java.sql.Types.INTEGER);
+            }
             pstmP.execute();
 
             // Pega o ID (chave primária) que o MySQL acabou de gerar
