@@ -11,6 +11,8 @@ public class Produto {
     private int quantidade;
     private int quantidadeInicial;
     private int idEmpreendimento;
+    private Integer idCategoria;
+    private String categoriaNome; // Adicionado para exibir o nome da categoria na listagem
 
     public Produto() {}
 
@@ -34,4 +36,11 @@ public class Produto {
 
     public int getIdEmpreendimento() { return idEmpreendimento; }
     public void setIdEmpreendimento(int idEmpreendimento) { this.idEmpreendimento = idEmpreendimento; }
+
+    public Integer getIdCategoria() { return idCategoria; }
+    public void setIdCategoria(Integer idCategoria) { this.idCategoria = idCategoria; }
+
+    public String getCategoriaNome() { return categoriaNome; }
+    public void setCategoriaNome(String categoriaNome) { this.categoriaNome = categoriaNome; }
+        
 }

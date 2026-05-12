@@ -63,9 +63,10 @@ public class ProdutoDAO {
      */
     public List<Produto> listar(int idEmpreendimento) {
         // O comando JOIN une a tabela 'produto' com a 'estoque' usando o ID em comum.
-        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, " +
+        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, p.idCategoria, c.nome as categoriaNome, " +
                 "e.quantidadeEstoque, e.quantidadeInicial " +
                 "FROM produto p " +
+                "LEFT JOIN categoria c ON p.idCategoria = c.idCategoria " + // Adiciona JOIN com categoria
                 "JOIN estoque e ON p.idProduto = e.idProduto " +
                 "WHERE e.idEmpreendimento = ?";
 
@@ -84,6 +85,9 @@ public class ProdutoDAO {
                 p.setPrecoVenda(rset.getDouble("valor_venda"));
                 p.setPrecoCusto(rset.getDouble("valor_custo"));
                 p.setIdEmpreendimento(idEmpreendimento);
+                int idCat = rset.getInt("idCategoria");
+                p.setIdCategoria(rset.wasNull() ? null : idCat);
+                p.setCategoriaNome(rset.getString("categoriaNome")); // Define o nome da categoria
                 p.setQuantidade(rset.getInt("quantidadeEstoque"));
                 p.setQuantidadeInicial(rset.getInt("quantidadeInicial"));
                 produtos.add(p);
@@ -98,7 +102,7 @@ public class ProdutoDAO {
      */
     public void atualizar(Produto produto) {
         // Atualiza a "ficha" do produto
-        String sqlProd = "UPDATE produto SET nome=?, valor_venda=?, valor_custo=? WHERE idProduto=?";
+        String sqlProd = "UPDATE produto SET nome=?, valor_venda=?, valor_custo=?, idCategoria=? WHERE idProduto=?";
         // Atualiza a "quantidade" na loja específica
         String sqlEstoque = "UPDATE estoque SET quantidadeEstoque=?, quantidadeInicial=? WHERE idProduto=? AND idEmpreendimento=?";
 
@@ -108,7 +112,12 @@ public class ProdutoDAO {
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
             pstmP.setDouble(3, produto.getPrecoCusto());
-            pstmP.setInt(4, produto.getId());
+            if (produto.getIdCategoria() != null) {
+                pstmP.setInt(4, produto.getIdCategoria());
+            } else {
+                pstmP.setNull(4, java.sql.Types.INTEGER);
+            }
+            pstmP.setInt(5, produto.getId());
             pstmP.executeUpdate();
 
             // Executa atualização das quantidades (incluindo a inicial para correção de relatórios)

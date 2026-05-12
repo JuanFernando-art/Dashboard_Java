@@ -1,4 +1,4 @@
-﻿-- drop database estoque_db;
+﻿﻿-- drop database estoque_db;
 
 CREATE DATABASE IF NOT EXISTS estoque_db;
 USE estoque_db;
@@ -27,8 +27,10 @@ CREATE TABLE endereco (
 
 -- 3. Tabela CATEGORIA: Organiza os produtos
 CREATE TABLE categoria (
-                           idCategoria INT PRIMARY KEY AUTO_INCREMENT,
-                           nome VARCHAR(50) NOT NULL UNIQUE
+    idCategoria INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(50) NOT NULL,
+    idCategoriaPai INT NULL,
+    FOREIGN KEY (idCategoriaPai) REFERENCES categoria(idCategoria) ON DELETE CASCADE
 );
 
 -- 4. Tabela PRODUTO: Dados principais dos itens
@@ -95,3 +97,6 @@ ALTER TABLE estoque ADD COLUMN quantidadeInicial INT NOT NULL DEFAULT 0;
 -- Primeiro, vamos permitir que esses campos sejam nulos para teste:
 ALTER TABLE empreendimento MODIFY idUsuario INT NULL;
 ALTER TABLE empreendimento MODIFY idEndereco INT NULL;
+
+ALTER TABLE produto ADD COLUMN idCategoria INT NULL;
+ALTER TABLE produto ADD CONSTRAINT fk_produto_categoria FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria);

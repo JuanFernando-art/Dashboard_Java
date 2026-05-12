@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -11,16 +11,30 @@
     <div class="usuario-logado">
         <span>Usuário</span>
         <strong id="usuarioLogado">Não identificado</strong>
+        <a href="#" id="linkHomepage">Voltar para Homepage</a>
     </div>
     <nav>
         <a href="#" id="linkEstoque" class="active" onclick="mostrarProdutos()">Estoque</a>
         <a href="#" id="linkVendas" onclick="mostrarVendas()">Vendas</a>
+        <a href="#" id="linkCategorias" onclick="mostrarCategorias()">Categorias</a>
         <a href="#">Relatórios</a>
-        <a href="#" id="linkHomepage">Voltar para Homepage</a>
     </nav>
 </div>
 
 <main class="content">
+    <section id="secaoCategorias" style="display: none;">
+        <header>
+            <h2>Gestão de Categorias</h2>
+            <button class="btn-primary" onclick="abrirModalCategoria()">Nova Categoria</button>
+        </header>
+        
+        <div class="table-container">
+            <div id="listaCategoriasArvore">
+                <!-- A árvore de categorias será carregada aqui pelo enterprise.js -->
+            </div>
+        </div>
+    </section>    
+    
     <div id="secaoProdutos">
         <header>
             <h1>Controle de Estoque</h1>
@@ -107,12 +121,37 @@
                     <input type="number" id="quantidade" required oninput="validarLimite()">
                 </div>
                 <div style="flex: 1;">
-                    <label>Capacidade Máxima (100%):</label>
+                    <label>Capacidade Máxima:</label>
                     <input type="number" id="quantidadeInicial" required oninput="validarLimite()">
                 </div>
             </div>
             <small id="erroLimite" style="color: red; display: none;">A quantidade não pode exceder o limite!</small>
+
+            <!-- Adicione isto dentro do formProduto, antes do botão submit -->
+            <label>Categoria</label>
+            <input type="hidden" id="prodIdCategoria"> <!-- Campo oculto que guarda o ID para o Java -->
+            <button type="button" id="btnSelecionarCat" class="btn-seletor-cat" onclick="abrirModalSelecaoCategoria()">
+                Selecionar Categoria...
+            </button>
+            <small style="display: block; margin-bottom: 15px; color: #666;">
+                Clique acima para escolher a categoria e subcategoria.
+            </small>
+
             <button type="submit" class="btn-save">Salvar no Estoque</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalCategoria" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModalCategoria()">&times;</span>
+        <h2 id="modalCatTitulo">Nova Categoria</h2>
+        <form id="formCategoria">
+            <input type="hidden" id="catId">
+            <input type="hidden" id="catPaiId">
+            <label>Nome da Categoria:</label>
+            <input type="text" id="catNome" required placeholder="Ex: Periféricos">
+            <button type="submit" class="btn-save">Salvar Categoria</button>
         </form>
     </div>
 </div>
@@ -140,8 +179,37 @@
     </div>
 </div>
 
+<div id="modalCategoria" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModalCategoria()">&times;</span>
+        <h2 id="modalCatTitulo">Nova Categoria</h2>
+        <form id="formCategoria">
+            <input type="hidden" id="catId">
+            <input type="hidden" id="catPaiId">
+            
+            <label for="catNome">Nome da Categoria</label>
+            <input type="text" id="catNome" required placeholder="Ex: Bebidas, Ferramentas...">
+            
+            <button type="submit" class="btn-save">Salvar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Seleção de Categoria (Breadcrumb style) -->
+<div id="modalSelecaoCategoria" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModalSelecaoCategoria()">&times;</span>
+        <h2>Selecionar Categoria</h2>
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+            Selecione a categoria desejada para o produto:
+        </p>
+        <div id="listaSelecaoCategorias" style="max-height: 400px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px;">
+            <!-- A árvore de seleção será gerada aqui pelo enterprise.js -->
+        </div>
+    </div>
+</div>
+
+
 <script src="enterprise.js"></script>
 </body>
 </html>
-
-

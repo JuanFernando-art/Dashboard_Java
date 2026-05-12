@@ -1,8 +1,10 @@
 package com.meuprojeto;
 
+import com.meuprojeto.dao.CategoriaDAO;
 import com.meuprojeto.dao.VendaDAO;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.dao.UsuarioDAO;
+import com.meuprojeto.model.Categoria;
 import com.meuprojeto.factory.ConnectionFactory;
 import com.meuprojeto.model.DashboardDTO;
 import com.meuprojeto.model.Venda;
@@ -36,17 +38,21 @@ public class AppRest {
         ProdutoDAO produtoDAO = new ProdutoDAO();
         VendaDAO vendaDAO = new VendaDAO();
         UsuarioDAO usuarioDAO = new UsuarioDAO();
+        CategoriaDAO categoriaDAO = new CategoriaDAO();
 
         // Inicializa o Javalin e configura a pasta de arquivos web
         var app = Javalin.create(config -> {
             config.staticFiles.add("./Web", Location.EXTERNAL);
         }).start(7000);
 
+        // Tratamento global de erros para evitar que o servidor caia por exceções não tratadas
         app.exception(Exception.class, (e, ctx) -> {
-            if (ctx.status().getCode() < 400) {
+            // Se o status ainda for sucesso, mas houve erro, forçamos 500
+            if (ctx.res().getStatus() < 400) {
                 ctx.status(500);
             }
-            ctx.json(Map.of("erro", e.getMessage() == null ? "Erro interno no servidor." : e.getMessage()));
+            e.printStackTrace(); // Log no console para você ver o erro real
+            ctx.json(java.util.Map.of("erro", e.getMessage() == null ? "Erro interno no servidor." : e.getMessage()));
         });
 
         // --- GRUPO: USUARIOS ---
@@ -92,10 +98,37 @@ public class AppRest {
             }
         });
 
+        // --- 📂 GRUPO: CATEGORIAS ---
+
+        app.get("/api/categorias", ctx -> {
+            requireAuthenticatedUser(ctx);
+            ctx.json(categoriaDAO.listarTodas());
+        });
+
+        app.post("/api/categorias", ctx -> { 
+            requireAuthenticatedUser(ctx);
+            Categoria cat = ctx.bodyAsClass(Categoria.class);
+            categoriaDAO.salvar(cat);
+            ctx.status(201).json(cat);
+        });
+
+        app.put("/api/categorias", ctx -> {
+            requireAuthenticatedUser(ctx);
+            Categoria cat = ctx.bodyAsClass(Categoria.class);
+            categoriaDAO.atualizar(cat);
+            ctx.json(cat);
+        });
+
+        app.delete("/api/categorias/{id}", ctx -> {
+            requireAuthenticatedUser(ctx);
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            categoriaDAO.deletar(id);
+            ctx.result("Categoria removida com sucesso");
+        });
+
         // --- 📦 GRUPO: PRODUTOS ---
 
-        // Lista produtos (Padrão: Loja 1)
-        app.post("/api/login", ctx -> {
+        app.post("/api/login", ctx -> { 
             Usuario credenciais = ctx.bodyAsClass(Usuario.class);
 
             if (credenciais.getEmail() == null || credenciais.getEmail().isBlank()
@@ -122,6 +155,7 @@ public class AppRest {
             }
         });
 
+        // Lista produtos
         app.get("/api/produtos", ctx -> {
             int idUsuario = requireAuthenticatedUser(ctx);
             String idEmpreendimento = ctx.queryParam("idEmpreendimento");

@@ -22,6 +22,19 @@ body { display: flex; background: #f0f2f5; height: 100vh; }
     color: white;
     font-size: 14px;
 }
+.usuario-logado a {
+    display: block;
+    margin-top: 10px;
+    color: #4e73df;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+.usuario-logado a:hover {
+    color: #224abe;
+    text-decoration: underline;
+}
 
 .content { flex: 1; padding: 30px; overflow-y: auto; }
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -174,14 +187,130 @@ thead th {
     justify-content: space-between;
     padding: 10px;
     border-bottom: 1px solid #eee;
-    cursor: pointer;
     transition: background 0.2s;
+    align-items: center;
 }
 .item-pdv:hover { background: #f0f7ff; }
+
+.info-produto { flex: 1; }
+.info-produto strong { color: #333; font-size: 14px; }
+.info-produto small { color: #666; }
+
+.acoes-pdv { display: flex; align-items: center; }
+.acoes-pdv .btn-primary { padding: 6px 12px; font-size: 12px; }
 
 .linha-carrinho {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
     border-bottom: 1px dashed #ccc;
+}
+
+/* Estilização do botão de remover item do carrinho */
+.btn-remover-carrinho {
+    background-color: #e74a3b;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+.btn-remover-carrinho:hover {
+    background-color: #c0392b;
+}
+
+/* Estilização do input de quantidade no modal de venda */
+.input-qtd-venda {
+    width: 60px;
+    padding: 6px;
+    border: 1px solid #d1d3e2;
+    border-radius: 4px;
+    margin-right: 10px;
+    text-align: center;
+    outline: none;
+}
+.input-qtd-venda:focus {
+    border-color: #4e73df;
+}
+
+/* --- Estilos da Árvore de Categorias --- */
+.categoria-item {
+    margin-left: 20px;
+    border-left: 1px dashed #ccc;
+    padding-left: 10px;
+}
+
+.categoria-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background: #fff;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.categoria-info {
+    cursor: pointer;
+    flex: 1;
+}
+
+.toggle-icon {
+    display: inline-block;
+    width: 20px;
+    transition: transform 0.2s;
+}
+
+/* Esconde subcategorias por padrão */
+.subcategorias-container {
+    display: none;
+}
+
+/* Mostra subcategorias e rotaciona o ícone quando a classe 'aberto' está presente */
+.categoria-item.aberto > .subcategorias-container {
+    display: block;
+}
+.categoria-item.aberto > .categoria-header .toggle-icon {
+    transform: rotate(90deg);
+}
+
+.categoria-acoes button {
+    padding: 4px 8px;
+    margin-left: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid #ddd;
+    font-size: 12px;
+    transition: 0.2s;
+}
+
+.btn-add-sub {
+    background-color: #28a745;
+    color: white;
+    border: none !important;
+    font-weight: bold;
+}
+.btn-add-sub:hover { background-color: #218838; }
+
+/* Estilo para o seletor de categoria no formulário */
+.btn-seletor-cat {
+    width: 100%;
+    padding: 10px;
+    text-align: left;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #555;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.text-muted {
+    color: #6c757d; /* Um cinza mais suave */
 }
