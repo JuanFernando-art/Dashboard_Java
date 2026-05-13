@@ -314,3 +314,15 @@ thead th {
 .text-muted {
     color: #6c757d; /* Um cinza mais suave */
 }
+
+#linkHomepage {
+  margin-top: 10px;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  background: #e74a3b;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px 10px;
+  text-align: left;
+  text-decoration: none;
+}

@@ -365,13 +365,16 @@ async function carregarHistoricoVendas() {
         const corpoVendas = document.getElementById('corpoVendas');
         corpoVendas.innerHTML = "";
 
+        
         vendas.forEach(v => {
+            const dateFormat = new Date (v.dataVenda);
+
             corpoVendas.innerHTML += `
-                <tr>
-                    <td>${v.dataVenda}</td>
-                    <td>${v.produtosVendidos}</td>
-                    <td>R$ ${v.total.toFixed(2)}</td>
-                </tr>
+            <tr>
+            <td>${dateFormat.toLocaleDateString('pt-br')}</td>
+            <td>${v.produtosVendidos}</td>
+            <td>R$ ${v.total.toFixed(2)}</td>
+            </tr>
             `;
         });
     } catch (erro) {

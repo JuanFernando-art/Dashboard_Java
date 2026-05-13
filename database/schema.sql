@@ -30,6 +30,7 @@ CREATE TABLE categoria (
     idCategoria INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(50) NOT NULL,
     idCategoriaPai INT NULL,
+    idEmpreendimento int,
     FOREIGN KEY (idCategoriaPai) REFERENCES categoria(idCategoria) ON DELETE CASCADE
 );
 
@@ -39,12 +40,12 @@ CREATE TABLE produto (
                          nome VARCHAR(50) NOT NULL,
                          valor_venda DOUBLE NOT NULL, -- Alterado de boolean para DOUBLE
                          valor_custo DOUBLE NOT NULL, -- Adicionado para cÃ¡lculo de lucro
-                         idCategoria INT,
+                         idCategoria INT NULL,
                          FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria)
 );
 -- 8. Tabela EMPREENDIMENTO: Dados das empresas do usuÃ¡rio
 CREATE TABLE empreendimento (
-                                idEmpreendimento INT AUTO_INCREMENT PRIMARY KEY,
+                                idEmpreendimento INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                                 CNPJ VARCHAR(20) NOT NULL UNIQUE,
                                 nome VARCHAR(100) NOT NULL,
                                 idUsuario INT,
@@ -79,6 +80,7 @@ CREATE TABLE itemVenda (
 CREATE TABLE estoque (
                          idEstoque INT AUTO_INCREMENT PRIMARY KEY,
                          quantidadeEstoque INT NOT NULL,
+                         quantidadeInicial INT NOT NULL DEFAULT 0,
                          idProduto INT,
                          idEmpreendimento INT, -- Adicionado para vincular estoque Ã  empresa
                          FOREIGN KEY (idProduto) REFERENCES produto(idProduto),
@@ -90,16 +92,5 @@ CREATE INDEX idx_produto_nome ON produto(nome);
 CREATE INDEX idx_categoria_nome ON categoria(nome);
 CREATE INDEX idx_venda_data ON venda(dataVenda);
 
--- 1. Adicionar a coluna de quantidade inicial/mÃ¡xima que estava faltando no estoque
-ALTER TABLE estoque ADD COLUMN quantidadeInicial INT NOT NULL DEFAULT 0;
-
--- 2. Corrigir o insert de teste (o seu anterior ia falhar porque falta o idUsuario e idEndereco que sÃ£o obrigatÃ³rios ou precisam ser nulos)
--- Primeiro, vamos permitir que esses campos sejam nulos para teste:
-ALTER TABLE empreendimento MODIFY idUsuario INT NULL;
-ALTER TABLE empreendimento MODIFY idEndereco INT NULL;
-
-ALTER TABLE produto ADD COLUMN idCategoria INT NULL;
 ALTER TABLE produto ADD CONSTRAINT fk_produto_categoria FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria);
-
-ALTER TABLE categoria ADD COLUMN idEmpreendimento INT NOT NULL;
 ALTER TABLE categoria ADD CONSTRAINT fk_categoria_empreendimento FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento);
