@@ -6,113 +6,91 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * CLASSE: CategoriaDAO
- * FUNÇÃO: Gerencia todas as operações de banco de dados relacionadas às categorias.
- * EXPLICAÇÃO: Esta classe permite que cada empreendimento (loja) tenha
- * seu próprio conjunto de categorias. Isso evita que, por exemplo, categorias de uma
- * "Oficina" apareçam em uma "Padaria".
- */
 public class CategoriaDAO {
-    private static final String[] CATEGORIAS_PADRAO = {
-            "Geral",
-            "Alimentos",
-            "Bebidas",
-            "Limpeza",
-            "Eletronicos",
-            "Servicos",
-            "Perifericos",
-            "Hardware"
-    };
 
-    /**
-     * MÉTODO: listarPorEmpreendimento
-     * OBJETIVO: Buscar no banco apenas as categorias vinculadas a um ID de empreendimento específico.
-     * @param idEmp O ID da loja que o usuário selecionou na Dashboard.
-     * @return Uma lista de objetos Categoria (ID e Nome) para preencher os menus do site.
-     */
-    public List<Categoria> listarPorEmpreendimento(int idEmp) {
-        garantirCategoriasPadrao(idEmp);
+    public void salvar(Categoria categoria) {
+        String sql = "INSERT INTO categoria (nome, idCategoriaPai, idEmpreendimento) VALUES (?, ?, ?)";
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstm.setString(1, categoria.getNome());
+            if (categoria.getIdCategoriaPai() != null && categoria.getIdCategoriaPai() > 0) {
+                pstm.setInt(2, categoria.getIdCategoriaPai());
+            } else {
+                pstm.setNull(2, Types.INTEGER);
+            }
+            pstm.setInt(3, categoria.getIdEmpreendimento());
+            pstm.execute();
+            try (ResultSet rs = pstm.getGeneratedKeys()) {
+                if (rs.next()) categoria.setIdCategoria(rs.getInt(1));
+            }
+        } catch (Exception e) { 
+            throw new RuntimeException("Erro ao salvar categoria: " + e.getMessage(), e);
+        }
+    }
 
-        // Comando SQL com '?' para evitar ataques de SQL Injection
-        String sql = "SELECT * FROM categoria WHERE idEmpreendimento = ?";
-        List<Categoria> lista = new ArrayList<>();
-
-        // Abre conexão com o banco e prepara o comando automaticamente (try-with-resources)
+    public void atualizar(Categoria categoria) {
+        String sql = "UPDATE categoria SET nome=?, idCategoriaPai=? WHERE idCategoria=? AND idEmpreendimento=?";
         try (Connection conn = ConnectionFactory.criarConexao();
              PreparedStatement pstm = conn.prepareStatement(sql)) {
+            pstm.setString(1, categoria.getNome());
+            if (categoria.getIdCategoriaPai() != null && categoria.getIdCategoriaPai() > 0) {
+                pstm.setInt(2, categoria.getIdCategoriaPai());
+            } else {
+                pstm.setNull(2, Types.INTEGER);
+            }
+            pstm.setInt(3, categoria.getIdCategoria());
+            pstm.setInt(4, categoria.getIdEmpreendimento());
+            pstm.executeUpdate();
+        } catch (Exception e) { 
+            throw new RuntimeException("Erro ao atualizar categoria: " + e.getMessage(), e);
+        }
+    }
 
-            // Substitui o '?' pelo ID da loja recebido como parâmetro
-            pstm.setInt(1, idEmp);
-
-            // Executa a consulta e armazena os resultados na variável rs
+    public List<Categoria> listarPorEmpreendimento(int idEmpreendimento) {
+        String sql = "SELECT idCategoria, nome, idCategoriaPai FROM categoria WHERE idEmpreendimento = ? ORDER BY nome";
+        List<Categoria> lista = new ArrayList<>();
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql)) {
+            pstm.setInt(1, idEmpreendimento);
             ResultSet rs = pstm.executeQuery();
-
-            // Percorre cada linha encontrada no banco de dados
             while (rs.next()) {
                 Categoria c = new Categoria();
-                // Mapeia a coluna do MySQL para o objeto Java
-                c.setId(rs.getInt("idCategoria"));
+                c.setIdCategoria(rs.getInt("idCategoria"));
                 c.setNome(rs.getString("nome"));
+                int pai = rs.getInt("idCategoriaPai");
+                c.setIdCategoriaPai(rs.wasNull() ? null : pai);
+                c.setIdEmpreendimento(idEmpreendimento);
                 lista.add(c);
             }
-        } catch (Exception e) {
-            // Registra erros de conexão ou sintaxe SQL no console
-            e.printStackTrace();
+        } catch (Exception e) { 
+            throw new RuntimeException("Erro ao listar categorias: " + e.getMessage(), e);
         }
         return lista;
     }
 
-    private void garantirCategoriasPadrao(int idEmp) {
-        String sqlContar = "SELECT COUNT(*) FROM categoria WHERE idEmpreendimento = ?";
-        String sqlInserir = "INSERT INTO categoria (nome, idEmpreendimento) VALUES (?, ?)";
-
-        try (Connection conn = ConnectionFactory.criarConexao();
-             PreparedStatement contar = conn.prepareStatement(sqlContar)) {
-
-            contar.setInt(1, idEmp);
-
-            try (ResultSet rs = contar.executeQuery()) {
-                if (rs.next() && rs.getInt(1) > 0) {
-                    return;
-                }
-            }
-
-            try (PreparedStatement inserir = conn.prepareStatement(sqlInserir)) {
-                for (String nome : CATEGORIAS_PADRAO) {
-                    inserir.setString(1, nome);
-                    inserir.setInt(2, idEmp);
-                    inserir.addBatch();
-                }
-                inserir.executeBatch();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * MÉTODO: salvar
-     * OBJETIVO: Criar uma nova categoria associada a uma loja específica.
-     * @param nome O nome da categoria (ex: "Peças", "Alimentos").
-     * @param idEmp O ID do empreendimento dono desta categoria.
-     */
-    public void salvar(String nome, int idEmp) {
-        // Insere o nome e o vínculo com o empreendimento
-        String sql = "INSERT INTO categoria (nome, idEmpreendimento) VALUES (?, ?)";
-
+    public Categoria buscarPorId(int id) {
+        String sql = "SELECT * FROM categoria WHERE idCategoria = ?";
         try (Connection conn = ConnectionFactory.criarConexao();
              PreparedStatement pstm = conn.prepareStatement(sql)) {
+            pstm.setInt(1, id);
+            try (ResultSet rs = pstm.executeQuery()) {
+                if (rs.next()) {
+                    int pai = rs.getInt("idCategoriaPai");
+                    return new Categoria(rs.getInt("idCategoria"), rs.getString("nome"), rs.wasNull() ? null : pai, rs.getInt("idEmpreendimento"));
+                }
+            }
+        } catch (Exception e) { 
+            throw new RuntimeException("Erro ao buscar categoria por ID: " + e.getMessage(), e);
+        }
+        return null;
+    }
 
-            // Define os valores que serão inseridos nas colunas
-            pstm.setString(1, nome);
-            pstm.setInt(2, idEmp);
-
-            // Executa o comando de inserção no banco
-            pstm.execute();
-
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void deletar(int id) {
+        String sql = "DELETE FROM categoria WHERE idCategoria = ?";
+        try (Connection conn = ConnectionFactory.criarConexao();
+             PreparedStatement pstm = conn.prepareStatement(sql)) { pstm.setInt(1, id); pstm.execute(); }
+        catch (Exception e) { 
+            throw new RuntimeException("Erro ao deletar categoria: " + e.getMessage(), e);
         }
     }
 }

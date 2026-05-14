@@ -19,6 +19,7 @@
       <div class="usuario-logado">
         <span>Usuario</span>
         <strong id="homepage-user">Nao identificado</strong>
+        <button class="logout-button" id="logout-button" type="button">Sair</button>
       </div>
 
       <h1 class="sidebar__title">Seus Empreendimentos</h1>
@@ -63,16 +64,74 @@
     <div class="modal" id="venture-modal">
       <div class="modal__content">
         <button class="modal__close" id="close-venture-modal" type="button">&times;</button>
-        <h2>Novo empreendimento</h2>
+        <h2 id="venture-modal-title">Novo empreendimento</h2>
         <form id="venture-form">
           <label for="venture-name">Nome</label>
           <input type="text" id="venture-name" required placeholder="Ex: Loja Matriz" />
 
-          <label for="venture-cnpj">CNPJ</label>
-          <input type="text" id="venture-cnpj" required placeholder="00.000.000/0001-00" />
+          <div id="venture-cnpj-field">
+            <label for="venture-cnpj">CNPJ</label>
+            <input type="text" id="venture-cnpj" required placeholder="00.000.000/0001-00" />
+          </div>
+
+          <div class="form-section-title">Endereço</div>
+
+          <div class="form-grid">
+            <div>
+              <label for="venture-cep">CEP</label>
+              <input type="text" id="venture-cep" required placeholder="00000-000" />
+            </div>
+            <div>
+              <label for="venture-state">Estado</label>
+              <input type="text" id="venture-state" required placeholder="SP" />
+            </div>
+          </div>
+
+          <div>
+            <label for="venture-city">Cidade</label>
+            <input type="text" id="venture-city" required placeholder="Sao Paulo" />
+          </div>
+
+          <div>
+            <label for="venture-neighborhood">Bairro</label>
+            <input type="text" id="venture-neighborhood" required placeholder="Centro" />
+          </div>
+
+          <div class="form-grid form-grid--address">
+            <div>
+              <label for="venture-street">Logradouro</label>
+              <input type="text" id="venture-street" required placeholder="Rua das Flores" />
+            </div>
+            <div>
+              <label for="venture-number">Número</label>
+              <input type="number" id="venture-number" required placeholder="123" />
+            </div>
+          </div>
 
           <p class="modal__error" id="venture-error"></p>
-          <button class="btn btn--primary" type="submit">Cadastrar empreendimento</button>
+          <button class="btn btn--primary" id="venture-submit-button" type="submit">Cadastrar empreendimento</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="delete-venture-modal">
+      <div class="modal__content modal__content--small">
+        <button class="modal__close" id="close-delete-venture-modal" type="button">&times;</button>
+        <h2>Excluir empreendimento</h2>
+        <form id="delete-venture-form">
+          <p class="modal__text">
+            Informe sua senha para excluir <strong id="delete-venture-name"></strong>.
+          </p>
+
+          <label for="delete-venture-password">Senha</label>
+          <input type="password" id="delete-venture-password" required autocomplete="current-password" />
+
+          <p class="modal__error" id="delete-venture-error"></p>
+
+          <div class="modal__actions">
+            <button class="btn btn--secondary" id="cancel-delete-venture" type="button">Cancelar</button>
+            <button class="btn btn--danger" id="confirm-delete-venture" type="submit">Excluir</button>
+          </div>
         </form>
       </div>
     </div>

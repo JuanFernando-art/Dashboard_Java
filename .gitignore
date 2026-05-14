@@ -31,6 +31,9 @@ bin/
 ### Maven ###
 target/
 
+### Local environment ###
+.env.local
+
 ### Custom IntelliJ ###
 .idea/
 *.iml

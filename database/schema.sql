@@ -1,18 +1,19 @@
--- drop database estoque_db;
--- Criação do Banco de Dados
+﻿﻿-- drop database estoque_db;
+
 CREATE DATABASE IF NOT EXISTS estoque_db;
 USE estoque_db;
 
--- 1. Tabela DONO: Armazena os usuários do sistema
+-- 1. Tabela DONO: Armazena os usuÃ¡rios do sistema
 CREATE TABLE dono (
                       idUsuario INT AUTO_INCREMENT PRIMARY KEY,
                       nome VARCHAR(100) NOT NULL,
-                      cpf VARCHAR(16) NOT NULL UNIQUE,
+                      cpf_encrypted TEXT NOT NULL,
+                      cpf_hash VARCHAR(64) NOT NULL UNIQUE,
                       email VARCHAR(100) NOT NULL UNIQUE,
                       senha VARCHAR(255) NOT NULL -- Aumentado para suportar criptografia
 );
 
--- 2. Tabela ENDERECO: Armazena localizações de usuários ou empresas
+-- 2. Tabela ENDERECO: Armazena localizaÃ§Ãµes de usuÃ¡rios ou empresas
 CREATE TABLE endereco (
                           idEndereco INT AUTO_INCREMENT PRIMARY KEY,
                           CEP VARCHAR(10) NOT NULL, -- Mudado para VARCHAR para manter o 0 inicial
@@ -25,8 +26,11 @@ CREATE TABLE endereco (
 
 -- 3. Tabela CATEGORIA: Organiza os produtos
 CREATE TABLE categoria (
-                           idCategoria INT PRIMARY KEY AUTO_INCREMENT,
-                           nome VARCHAR(50) NOT NULL
+    idCategoria INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(50) NOT NULL,
+    idCategoriaPai INT NULL,
+    idEmpreendimento int,
+    FOREIGN KEY (idCategoriaPai) REFERENCES categoria(idCategoria) ON DELETE CASCADE
 );
 
 -- 4. Tabela PRODUTO: Dados principais dos itens
@@ -34,13 +38,13 @@ CREATE TABLE produto (
                          idProduto INT PRIMARY KEY AUTO_INCREMENT,
                          nome VARCHAR(50) NOT NULL,
                          valor_venda DOUBLE NOT NULL, -- Alterado de boolean para DOUBLE
-                         valor_custo DOUBLE NOT NULL, -- Adicionado para cálculo de lucro
-                         idCategoria INT,
-                         FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria)
+                         valor_custo DOUBLE NOT NULL, -- Adicionado para cÃ¡lculo de lucro
+                         idCategoria INT NULL,
+                         FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria) ON DELETE SET NULL
 );
--- 8. Tabela EMPREENDIMENTO: Dados das empresas do usuário
+-- 8. Tabela EMPREENDIMENTO: Dados das empresas do usuÃ¡rio
 CREATE TABLE empreendimento (
-                                idEmpreendimento INT AUTO_INCREMENT PRIMARY KEY,
+                                idEmpreendimento INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                                 CNPJ VARCHAR(20) NOT NULL UNIQUE,
                                 nome VARCHAR(100) NOT NULL,
                                 idUsuario INT,
@@ -66,7 +70,7 @@ CREATE TABLE itemVenda (
                            idProduto INT,
                            quantidadeVenda INT NOT NULL,
                            precoUnitario DOUBLE NOT NULL, -- Valor praticado no momento da venda
-                           precoCustoNoMomento DOUBLE NOT NULL, -- Para cálculo preciso de lucro histórico
+                           precoCustoNoMomento DOUBLE NOT NULL, -- Para cÃ¡lculo preciso de lucro histÃ³rico
                            FOREIGN KEY (idVenda) REFERENCES venda(idVenda),
                            FOREIGN KEY (idProduto) REFERENCES produto(idProduto)
 );
@@ -75,74 +79,16 @@ CREATE TABLE itemVenda (
 CREATE TABLE estoque (
                          idEstoque INT AUTO_INCREMENT PRIMARY KEY,
                          quantidadeEstoque INT NOT NULL,
+                         quantidadeInicial INT NOT NULL DEFAULT 0,
                          idProduto INT,
-                         idEmpreendimento INT, -- Adicionado para vincular estoque à empresa
+                         idEmpreendimento INT, -- Adicionado para vincular estoque Ã  empresa
                          FOREIGN KEY (idProduto) REFERENCES produto(idProduto),
                          FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento)
 );
 
-
--- testes
-
-
--- ÍNDICES: Para otimizar a barra de pesquisa (Nome, Categoria, ID)
+-- INDEX: Para otimizar a barra de pesquisa (Nome, Categoria, ID)
 CREATE INDEX idx_produto_nome ON produto(nome);
 CREATE INDEX idx_categoria_nome ON categoria(nome);
 CREATE INDEX idx_venda_data ON venda(dataVenda);
 
-INSERT INTO empreendimento (idEmpreendimento, nome, CNPJ) VALUES (1, 'Oficina', '111');
-INSERT INTO empreendimento (idEmpreendimento, nome, CNPJ) VALUES (2, 'Padaria', '222');
--- Garante que existe uma categoria e uma loja para o teste não falhar por falta de chave estrangeira
-INSERT IGNORE INTO categoria (idCategoria, nome) VALUES (1, 'Geral');
-INSERT IGNORE INTO empreendimento (idEmpreendimento, nome, CNPJ) VALUES (1, 'Minha Loja de Teste', '00000000000000');
-
--- Verificar se a categoria e o empreendimento de teste existem
-SELECT * FROM categoria;
-SELECT * FROM empreendimento;
-
--- Verificar se o produto foi salvo (Tabela Produto)
-SELECT * FROM produto;
-
--- Verificar se a quantidade foi para a tabela certa (Tabela Estoque)
-SELECT * FROM estoque;
-
--- Garante que o ID 1 existe para que o Java consiga salvar
-INSERT IGNORE INTO categoria (idCategoria, nome) VALUES (1, 'Geral');
-INSERT IGNORE INTO dono (idUsuario, nome, cpf, email, senha) VALUES (1, 'pebas', '000', 'pebas@email.com', '123');
-INSERT IGNORE INTO empreendimento (idEmpreendimento, nome, CNPJ, idUsuario) VALUES (1, 'Loja Principal', '123', 1);
-
--- 1. Adicionar a coluna de quantidade inicial/máxima que estava faltando no estoque
-ALTER TABLE estoque ADD COLUMN quantidadeInicial INT NOT NULL DEFAULT 0;
-
--- 2. Corrigir o insert de teste (o seu anterior ia falhar porque falta o idUsuario e idEndereco que são obrigatórios ou precisam ser nulos)
--- Primeiro, vamos permitir que esses campos sejam nulos para teste:
-ALTER TABLE empreendimento MODIFY idUsuario INT NULL;
-ALTER TABLE empreendimento MODIFY idEndereco INT NULL;
-
--- 3. Inserir dados básicos para o sistema não travar
-INSERT IGNORE INTO categoria (idCategoria, nome) VALUES (1, 'Geral');
-INSERT IGNORE INTO empreendimento (idEmpreendimento, nome, CNPJ) VALUES (1, 'Loja Matriz', '000.000/0001-00');
-
-USE estoque_db;
-
-INSERT IGNORE INTO categoria (nome) VALUES ('Geral');
-INSERT IGNORE INTO categoria (nome) VALUES ('Periféricos');
-INSERT IGNORE INTO categoria (nome) VALUES ('Hardware');
-
-USE estoque_db;
-
--- Adiciona a coluna de vínculo
-ALTER TABLE categoria ADD COLUMN idEmpreendimento INT;
-
--- Cria a chave estrangeira
-ALTER TABLE categoria
-    ADD CONSTRAINT fk_categoria_empreendimento
-        FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento);
-
--- Opcional: Se quiser que as categorias atuais pertençam à Loja 1 para não dar erro:
-UPDATE categoria SET idEmpreendimento = 1 WHERE idEmpreendimento IS NULL;
-
-DELETE FROM itemVenda;
-DELETE FROM venda;
-DELETE FROM estoque;
-DELETE FROM produto;
+ALTER TABLE categoria ADD CONSTRAINT fk_categoria_empreendimento FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento) ON DELETE CASCADE;

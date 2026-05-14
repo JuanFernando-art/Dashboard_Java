@@ -34,7 +34,11 @@ public class ProdutoDAO {
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
             pstmP.setDouble(3, produto.getPrecoCusto());
-            pstmP.setInt(4, produto.getIdCategoria());
+            if (produto.getIdCategoria() != null) {
+                pstmP.setInt(4, produto.getIdCategoria());
+            } else {
+                pstmP.setNull(4, java.sql.Types.INTEGER);
+            }
             pstmP.execute();
 
             // Pega o ID (chave primária) que o MySQL acabou de gerar
@@ -64,9 +68,10 @@ public class ProdutoDAO {
      */
     public List<Produto> listar(int idEmpreendimento) {
         // O comando JOIN une a tabela 'produto' com a 'estoque' usando o ID em comum.
-        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, p.idCategoria, " +
+        String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, p.idCategoria, c.nome as categoriaNome, " +
                 "e.quantidadeEstoque, e.quantidadeInicial " +
                 "FROM produto p " +
+                "LEFT JOIN categoria c ON p.idCategoria = c.idCategoria " + // Adiciona JOIN com categoria
                 "JOIN estoque e ON p.idProduto = e.idProduto " +
                 "WHERE e.idEmpreendimento = ?";
 
@@ -84,8 +89,10 @@ public class ProdutoDAO {
                 p.setNome(rset.getString("nome"));
                 p.setPrecoVenda(rset.getDouble("valor_venda"));
                 p.setPrecoCusto(rset.getDouble("valor_custo"));
-                p.setIdCategoria(rset.getInt("idCategoria"));
                 p.setIdEmpreendimento(idEmpreendimento);
+                int idCat = rset.getInt("idCategoria");
+                p.setIdCategoria(rset.wasNull() ? null : idCat);
+                p.setCategoriaNome(rset.getString("categoriaNome")); // Define o nome da categoria
                 p.setQuantidade(rset.getInt("quantidadeEstoque"));
                 p.setQuantidadeInicial(rset.getInt("quantidadeInicial"));
                 produtos.add(p);
@@ -110,7 +117,11 @@ public class ProdutoDAO {
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
             pstmP.setDouble(3, produto.getPrecoCusto());
-            pstmP.setInt(4, produto.getIdCategoria());
+            if (produto.getIdCategoria() != null) {
+                pstmP.setInt(4, produto.getIdCategoria());
+            } else {
+                pstmP.setNull(4, java.sql.Types.INTEGER);
+            }
             pstmP.setInt(5, produto.getId());
             pstmP.executeUpdate();
 
@@ -163,6 +174,35 @@ public class ProdutoDAO {
             System.out.println("✅ Produto removido com sucesso!");
         } catch (Exception e) {
             System.out.println("❌ Erro ao deletar: " + e.getMessage());
+        }
+    }
+
+    public void deletar(int id, int idEmpreendimento) {
+        String sqlEstoque = "DELETE FROM estoque WHERE idProduto = ? AND idEmpreendimento = ?";
+        String sqlProdutoOrfao = "DELETE FROM produto WHERE idProduto = ? " +
+                "AND NOT EXISTS (SELECT 1 FROM estoque WHERE estoque.idProduto = produto.idProduto) " +
+                "AND NOT EXISTS (SELECT 1 FROM itemVenda WHERE itemVenda.idProduto = produto.idProduto)";
+
+        try (Connection conn = ConnectionFactory.criarConexao()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement pstmEstoque = conn.prepareStatement(sqlEstoque);
+                 PreparedStatement pstmProduto = conn.prepareStatement(sqlProdutoOrfao)) {
+                pstmEstoque.setInt(1, id);
+                pstmEstoque.setInt(2, idEmpreendimento);
+                pstmEstoque.executeUpdate();
+
+                pstmProduto.setInt(1, id);
+                pstmProduto.executeUpdate();
+
+                conn.commit();
+                System.out.println("Produto removido com sucesso!");
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao deletar: " + e.getMessage());
         }
     }
 }
