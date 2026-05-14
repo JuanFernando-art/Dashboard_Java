@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.meuprojeto.config.AppConfig;
 import com.meuprojeto.model.Usuario;
 
 import java.nio.charset.StandardCharsets;
@@ -15,7 +16,7 @@ import java.util.Date;
 public class JwtUtil {
     private static final String ISSUER = "GestorERP";
     private static final long EXPIRATION_HOURS = 2;
-    private static boolean warnedMissingJwtSecret = false;
+    private static final String DEV_JWT_SECRET = "dev-local-JWT_SECRET-change-before-production";
 
     private JwtUtil() {}
 
@@ -45,14 +46,7 @@ public class JwtUtil {
     }
 
     private static byte[] getSecretBytes() {
-        String secret = System.getenv("JWT_SECRET");
-        if (secret == null || secret.isBlank()) {
-            if (!warnedMissingJwtSecret) {
-                System.err.println("Aviso: JWT_SECRET nao definido. Usando chave local de desenvolvimento.");
-                warnedMissingJwtSecret = true;
-            }
-            secret = "dev-local-JWT_SECRET-change-before-production";
-        }
+        String secret = AppConfig.envOrDevFallback("JWT_SECRET", DEV_JWT_SECRET);
 
         try {
             return MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.UTF_8));

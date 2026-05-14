@@ -7,7 +7,6 @@ USE estoque_db;
 CREATE TABLE dono (
                       idUsuario INT AUTO_INCREMENT PRIMARY KEY,
                       nome VARCHAR(100) NOT NULL,
-                      cpf VARCHAR(16) NULL,
                       cpf_encrypted TEXT NOT NULL,
                       cpf_hash VARCHAR(64) NOT NULL UNIQUE,
                       email VARCHAR(100) NOT NULL UNIQUE,
@@ -41,7 +40,7 @@ CREATE TABLE produto (
                          valor_venda DOUBLE NOT NULL, -- Alterado de boolean para DOUBLE
                          valor_custo DOUBLE NOT NULL, -- Adicionado para cÃ¡lculo de lucro
                          idCategoria INT NULL,
-                         FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria)
+                         FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria) ON DELETE SET NULL
 );
 -- 8. Tabela EMPREENDIMENTO: Dados das empresas do usuÃ¡rio
 CREATE TABLE empreendimento (
@@ -92,5 +91,4 @@ CREATE INDEX idx_produto_nome ON produto(nome);
 CREATE INDEX idx_categoria_nome ON categoria(nome);
 CREATE INDEX idx_venda_data ON venda(dataVenda);
 
-ALTER TABLE produto ADD CONSTRAINT fk_produto_categoria FOREIGN KEY (idCategoria) REFERENCES categoria(idCategoria);
-ALTER TABLE categoria ADD CONSTRAINT fk_categoria_empreendimento FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento);
+ALTER TABLE categoria ADD CONSTRAINT fk_categoria_empreendimento FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento) ON DELETE CASCADE;

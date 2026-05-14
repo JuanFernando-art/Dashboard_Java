@@ -616,6 +616,28 @@ public class AppRest {
                         removeProdutoOrfao.executeBatch();
                     }
 
+                    try (PreparedStatement desvinculaProdutosCategorias = conn.prepareStatement(
+                            "UPDATE produto SET idCategoria = NULL WHERE idCategoria IN (" +
+                                    "SELECT idCategoria FROM categoria WHERE idEmpreendimento = ?)")) {
+                        desvinculaProdutosCategorias.setInt(1, idEmpreendimento);
+                        desvinculaProdutosCategorias.executeUpdate();
+                    }
+
+                    try (PreparedStatement desvinculaSubcategorias = conn.prepareStatement(
+                            "UPDATE categoria SET idCategoriaPai = NULL WHERE idCategoriaPai IN (" +
+                                    "SELECT idCategoria FROM (" +
+                                    "SELECT idCategoria FROM categoria WHERE idEmpreendimento = ?" +
+                                    ") categorias_do_empreendimento)")) {
+                        desvinculaSubcategorias.setInt(1, idEmpreendimento);
+                        desvinculaSubcategorias.executeUpdate();
+                    }
+
+                    try (PreparedStatement removeCategorias = conn.prepareStatement(
+                            "DELETE FROM categoria WHERE idEmpreendimento = ?")) {
+                        removeCategorias.setInt(1, idEmpreendimento);
+                        removeCategorias.executeUpdate();
+                    }
+
                     try (PreparedStatement removeEmpreendimento = conn.prepareStatement(
                             "DELETE FROM empreendimento WHERE idEmpreendimento = ?")) {
                         removeEmpreendimento.setInt(1, idEmpreendimento);

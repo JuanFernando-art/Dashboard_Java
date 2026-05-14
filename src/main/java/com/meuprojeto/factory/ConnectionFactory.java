@@ -1,5 +1,6 @@
 package com.meuprojeto.factory;
 
+import com.meuprojeto.config.AppConfig;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
 import java.sql.Connection;
@@ -14,11 +15,9 @@ import java.util.List;
  */
 public class ConnectionFactory {
 
-    // Dados de acesso ao seu MySQL Local
-    private static final String USERNAME = "root";
-    private static final String PASSWORD = "123456"; // Sua senha do banco
-    // URL: Aponta para o endereÃ§o do banco (localhost) e o nome da base (estoque_db)
-    private static final String DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db";
+    private static final String DEV_DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db";
+    private static final String DEV_DATABASE_USER = "gestor_dev";
+    private static final String DEV_DATABASE_PASSWORD = "";
 
     /**
      * MÃ‰TODO: criarConexao
@@ -29,8 +28,11 @@ public class ConnectionFactory {
         // Carrega o Driver do MySQL na memÃ³ria do Java
         Class.forName("com.mysql.cj.jdbc.Driver");
 
-        // Tenta estabelecer a ligaÃ§Ã£o usando as credenciais acima
-        return DriverManager.getConnection(DATABASE_URL, USERNAME, PASSWORD);
+        String databaseUrl = AppConfig.envOrDevFallback("DB_URL", DEV_DATABASE_URL);
+        String username = AppConfig.envOrDevFallback("DB_USER", DEV_DATABASE_USER);
+        String password = AppConfig.envOrDevFallback("DB_PASSWORD", DEV_DATABASE_PASSWORD);
+
+        return DriverManager.getConnection(databaseUrl, username, password);
     }
 
     /**

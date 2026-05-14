@@ -1,5 +1,6 @@
 package com.meuprojeto.security;
 
+import com.meuprojeto.config.AppConfig;
 import org.mindrot.jbcrypt.BCrypt;
 
 import javax.crypto.Cipher;
@@ -16,7 +17,6 @@ public class SecurityUtil {
     private static final int GCM_TAG_BITS = 128;
     private static final int GCM_IV_BYTES = 12;
     private static final SecureRandom RANDOM = new SecureRandom();
-    private static boolean warnedMissingCpfKey = false;
 
     private SecurityUtil() {}
 
@@ -97,14 +97,7 @@ public class SecurityUtil {
     }
 
     private static byte[] getKeyBytes(String envName) throws Exception {
-        String key = System.getenv(envName);
-        if (key == null || key.isBlank()) {
-            if (!warnedMissingCpfKey) {
-                System.err.println("Aviso: variaveis CPF_ENCRYPTION_KEY/CPF_HASH_KEY nao definidas. Usando chaves locais de desenvolvimento.");
-                warnedMissingCpfKey = true;
-            }
-            key = "dev-local-" + envName + "-change-before-production";
-        }
+        String key = AppConfig.envOrDevFallback(envName, "dev-local-" + envName + "-change-before-production");
 
         byte[] decoded;
         try {
