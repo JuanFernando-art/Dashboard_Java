@@ -3,6 +3,8 @@ package com.meuprojeto.dao;
 import com.meuprojeto.factory.ConnectionFactory;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 /**
  * CLASSE: EmpreendimentoDAO
@@ -19,7 +21,7 @@ public class EmpreendimentoDAO {
      * @param nome O nome fantasia da unidade (ex: "Oficina Central", "Padaria Norte").
      * @param cnpj O nÃºmero do CNPJ para registro legal no banco de dados.
      */
-    public void salvar(String nome, String cnpj) {
+    public int salvar(String nome, String cnpj) {
         // Comando SQL bÃ¡sico para inserÃ§Ã£o.
         // Nota: O ID Ã© gerado automaticamente pelo banco (AUTO_INCREMENT).
         String sql = "INSERT INTO empreendimento (nome, CNPJ) VALUES (?, ?)";
@@ -27,18 +29,27 @@ public class EmpreendimentoDAO {
         // O uso do try-with-resources garante que a conexÃ£o seja fechada
         // automaticamente, mesmo se ocorrer um erro, evitando travamentos no banco.
         try (Connection conn = ConnectionFactory.criarConexao();
-             PreparedStatement pstm = conn.prepareStatement(sql)) {
+             PreparedStatement pstm = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             // Atribui os valores recebidos do Front-end aos parÃ¢metros '?' do SQL
             pstm.setString(1, nome);
             pstm.setString(2, cnpj);
 
             // Executa a gravaÃ§Ã£o fÃ­sica no MySQL
-            pstm.execute();
+            pstm.executeUpdate();
+
+            try (ResultSet rs = pstm.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
 
         } catch (Exception e) {
-            // Imprime o rastro do erro caso a conexÃ£o falhe ou o CNPJ seja duplicado (se houver UNIQUE)
-            e.printStackTrace();
+            // Se for erro de entrada duplicada, apenas ignoramos o log pesado para manter o console limpo
+            if (e.getMessage() != null && !e.getMessage().contains("Duplicate entry")) {
+                e.printStackTrace();
+            }
         }
+        return -1;
     }
 }

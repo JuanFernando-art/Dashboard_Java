@@ -22,6 +22,9 @@ public class Venda {
 
     private int idEmpreendimento;
 
+    // Campo para armazenar o método: "Dinheiro", "Cartão" ou "PIX"
+    private String formaPagamento;
+
     private List<ItemVenda> itens;
 
     // Lista descritiva dos produtos.
@@ -61,6 +64,14 @@ public class Venda {
 
     public void setIdEmpreendimento(int idEmpreendimento) {
         this.idEmpreendimento = idEmpreendimento;
+    }
+
+    public String getFormaPagamento() {
+        return formaPagamento;
+    }
+
+    public void setFormaPagamento(String formaPagamento) {
+        this.formaPagamento = formaPagamento;
     }
 
     public List<ItemVenda> getItens() {

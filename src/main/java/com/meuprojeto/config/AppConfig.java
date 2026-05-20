@@ -9,7 +9,7 @@ import java.util.Map;
 public final class AppConfig {
     private static final Map<String, String> LOCAL_ENV = loadLocalEnv();
     private static final String APP_ENV = readEnv("APP_ENV");
-    private static final boolean DEV = "dev".equalsIgnoreCase(APP_ENV);
+    private static final boolean DEV = APP_ENV == null || "dev".equalsIgnoreCase(APP_ENV);
 
     private AppConfig() {}
 

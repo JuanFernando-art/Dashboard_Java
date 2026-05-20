@@ -326,3 +326,43 @@ thead th {
   text-align: left;
   text-decoration: none;
 }
+
+/* --- Estilos para a Tabela de Contas de Pagamento --- */
+#tabelaContasPagamento th:nth-child(5),
+#tabelaContasPagamento td:nth-child(5) {
+    max-width: 200px; /* Limita a largura da coluna PIX */
+    word-wrap: break-word; /* Quebra a palavra se for muito longa */
+}
+
+/* --- Estilos do Modal de Pagamento --- */
+.opcoes-pagamento {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-pgto {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    background: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.btn-pgto:hover {
+    border-color: #4e73df;
+    background-color: #f8f9fc;
+    transform: translateY(-2px);
+}
+
+.btn-pgto .icon {
+    font-size: 24px;
+    margin-right: 15px;
+}

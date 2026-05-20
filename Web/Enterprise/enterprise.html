@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -17,7 +17,7 @@
         <a href="#" id="linkEstoque" class="active" onclick="mostrarProdutos()">Estoque</a>
         <a href="#" id="linkVendas" onclick="mostrarVendas()">Vendas</a>
         <a href="#" id="linkCategorias" onclick="mostrarCategorias()">Categorias</a>
-        <a href="#">Relatórios</a>
+        <a href="#" id="linkFinanceiro" onclick="mostrarFinanceiro()">Financeiro</a>
     </nav>
 </div>
 
@@ -90,6 +90,39 @@
                 </tr>
                 </thead>
                 <tbody id="corpoVendas"></tbody>
+            </table>
+        </section>
+    </div>
+
+    <div id="secaoFinanceiro" style="display:none;">
+        <header>
+            <h1>Gestão Financeira</h1>
+        </header>
+        
+        <div class="controle-topo">
+            <div class="busca-wrapper">
+                <!-- Futura busca de contas, se necessário -->
+            </div>
+            <button class="btn-primary" onclick="abrirModalContaPagamento()">+ Nova Conta</button>
+        </div>
+        
+        <section class="table-container" style="margin-top: 20px;">
+            <table id="tabelaContasPagamento">
+                <thead>
+                    <tr>
+                        <th>Banco</th>
+                        <th>Agência</th>
+                        <th>Conta</th>
+                        <th>Tipo</th>
+                        <th>Chave PIX</th>
+                        <th>Status Conta</th>
+                        <th>Status PIX</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoContasPagamento">
+                    <!-- Contas serão carregadas aqui pelo enterprise.js -->
+                </tbody>
             </table>
         </section>
     </div>
@@ -191,6 +224,81 @@
             <input type="text" id="catNome" required placeholder="Ex: Bebidas, Ferramentas...">
             
             <button type="submit" class="btn-save">Salvar</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Seleção de Pagamento -->
+<div id="modalPagamento" class="modal">
+    <div class="modal-content" style="width: 400px; text-align: center;">
+        <span class="close" onclick="fecharModalPagamento()">&times;</span>
+        <h2>Forma de Pagamento</h2>
+        <p style="margin-bottom: 20px; color: #666;">Como o cliente deseja pagar?</p>
+        
+        <div class="opcoes-pagamento">
+            <button class="btn-pgto" onclick="selecionarPagamento('Dinheiro')">
+                <span class="icon">💵</span> Dinheiro
+            </button>
+            <button class="btn-pgto" onclick="selecionarPagamento('Cartão')">
+                <span class="icon">💳</span> Cartão
+            </button>
+            <button class="btn-pgto" onclick="selecionarPagamento('PIX')">
+                <span class="icon">📱</span> PIX
+            </button>
+        </div>
+        
+        <div id="infoPix" style="display: none; margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 8px; border: 1px solid #b8daff;">
+            <strong>Chave PIX:</strong>
+            <p id="chavePixTexto" style="word-break: break-all; margin: 10px 0; font-weight: bold; color: #004085; font-size: 18px;"></p>
+            <button class="btn-save" onclick="processarVendaFinal('PIX')">Já recebi o PIX</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro/Edição de Conta de Pagamento -->
+<div id="modalContaPagamento" class="modal">
+    <div class="modal-content" style="width: 500px;">
+        <span class="close" onclick="fecharModalContaPagamento()">&times;</span>
+        <h2 id="modalContaPagamentoTitulo">Cadastrar Conta de Pagamento</h2>
+        <form id="formContaPagamento">
+            <input type="hidden" id="contaId">
+            
+            <label for="nomeBanco">Nome do Banco:</label>
+            <input type="text" id="nomeBanco" required placeholder="Ex: Banco do Brasil, Itaú">
+
+            <div class="row">
+                <div style="flex: 1;">
+                    <label for="agencia">Agência:</label>
+                    <input type="text" id="agencia" required placeholder="Ex: 0001">
+                </div>
+                <div style="flex: 1;">
+                    <label for="conta">Número da Conta:</label>
+                    <input type="text" id="conta" required placeholder="Ex: 12345-6">
+                </div>
+            </div>
+
+            <label for="tipoConta">Tipo de Conta:</label>
+            <select id="tipoConta" required>
+                <option value="">Selecione...</option>
+                <option value="Corrente">Corrente</option>
+                <option value="Poupança">Poupança</option>
+                <option value="Salário">Salário</option>
+            </select>
+
+            <label for="pixChave">Chave PIX (opcional):</label>
+            <input type="text" id="pixChave" placeholder="Ex: email@exemplo.com, 123.456.789-00">
+
+            <div class="row" style="margin-top: 15px;">
+                <label style="display: flex; align-items: center; flex: 1;">
+                    <input type="checkbox" id="ativaConta" style="width: auto; margin-right: 10px;"> Ativar p/ Cartão/Débito
+                </label>
+                <label style="display: flex; align-items: center; flex: 1;">
+                    <input type="checkbox" id="ativaPix" style="width: auto; margin-right: 10px;"> Ativar p/ PIX
+                </label>
+            </div>
+            <p style="font-size: 11px; color: #888; margin-bottom: 15px;">* Ativar uma opção solicitará sua senha.</p>
+
+            <button type="submit" class="btn-save">Salvar Conta</button>
         </form>
     </div>
 </div>

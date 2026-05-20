@@ -1,4 +1,5 @@
-﻿﻿const API_BASE_URL = 'http://localhost:7000/api';
+﻿﻿
+const API_BASE_URL = 'http://localhost:7000/api';
 
 function logout() {
     localStorage.removeItem('authToken');
@@ -43,6 +44,7 @@ async function carregarCabecalhoSidebar() {
     const idEmpreendimento = localStorage.getItem('idEmpreendimento');
     const labelDisplay = document.getElementById('usuarioLogado');
     const labelApoio = document.querySelector('.usuario-logado span');
+    const linkCategorias = document.getElementById('linkCategorias');
     const linkAcao = document.getElementById('linkHomepage'); 
 
     if (!localStorage.getItem('authToken')) {
@@ -77,6 +79,11 @@ async function carregarCabecalhoSidebar() {
         linkAcao.innerText = "Voltar para Homepage";
         linkAcao.href = "../Homepage/homepage.html";
         linkAcao.onclick = null; // Remove a chamada da função logout()
+    }
+
+    // Altera o nome na barra lateral para "Categorias Personalizadas"
+    if (linkCategorias) {
+        linkCategorias.innerText = "Categorias Personalizadas";
     }
 }
 
@@ -405,8 +412,14 @@ function mostrarCategorias() {
     carregarCategorias();
 }
 
+function mostrarFinanceiro() {
+    atualizarLinkAtivo('linkFinanceiro');
+    toggleSecao('secaoFinanceiro');
+    carregarContasPagamento();
+}
+
 function toggleSecao(idAtiva) {
-    const secoes = ['secaoProdutos', 'secaoVendas', 'secaoCategorias'];
+    const secoes = ['secaoProdutos', 'secaoVendas', 'secaoCategorias', 'secaoFinanceiro'];
     secoes.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === idAtiva) ? 'block' : 'none';
@@ -548,18 +561,38 @@ async function deletarCategoria(id) {
     }
 }
 
-async function finalizarVenda() {
-    if (carrinho.length === 0) return alert("O carrinho esta vazio!");
+function fecharModalPagamento() {
+    document.getElementById('modalPagamento').style.display = 'none';
+    document.getElementById('infoPix').style.display = 'none';
+}
 
+async function selecionarPagamento(metodo) {
+    if (metodo === 'PIX') {
+        try {
+            const configResp = await apiFetch(`${API_BASE_URL}/config/pagamento?idEmpreendimento=${idEmpreendimentoAtual}`);
+            const config = await configResp.json();
+            document.getElementById('chavePixTexto').innerText = config.pixChave;
+            document.getElementById('infoPix').style.display = 'block';
+        } catch (e) {
+            alert("Erro ao buscar chave PIX. Verifique a configuração.");
+        }
+    } else {
+        await processarVendaFinal(metodo);
+    }
+} 
+
+async function finalizarVenda() {
+    if (carrinho.length === 0) return alert("O carrinho está vazio!");
+    document.getElementById('modalPagamento').style.display = 'block';
+}
+
+async function processarVendaFinal(metodo) {
     const totalVenda = carrinho.reduce((acc, item) => acc + (item.precoVenda * item.quantidadeCarrinho), 0);
     const listaNomes = carrinho.map(item => `${item.nome} (${item.quantidadeCarrinho})`).join(", ");
-    const itens = carrinho.map(item => ({
-        idProduto: item.id,
-        quantidade: item.quantidadeCarrinho,
-        precoUnitario: item.precoVenda,
-        precoCustoNoMomento: item.precoCusto
-    }));
-
+    
+    if (!confirm(`Confirmar recebimento de R$ ${totalVenda.toFixed(2)} via ${metodo}?`)) {
+        return;
+    }
     try {
         const vendaResponse = await apiFetch(`${API_BASE_URL}/vendas`, {
             method: 'POST',
@@ -568,7 +601,13 @@ async function finalizarVenda() {
                 idEmpreendimento: parseInt(idEmpreendimentoAtual),
                 total: totalVenda,
                 produtosVendidos: listaNomes,
-                itens
+                formaPagamento: metodo,
+                itens: carrinho.map(item => ({
+                    idProduto: item.id,
+                    quantidade: item.quantidadeCarrinho,
+                    precoUnitario: item.precoVenda,
+                    precoCustoNoMomento: item.precoCusto
+                }))
             })
         });
 
@@ -591,10 +630,132 @@ async function finalizarVenda() {
         alert("Venda realizada com sucesso!");
         carrinho = [];
         document.getElementById('modalPDV').style.display = 'none';
+        fecharModalPagamento();
         await carregarProdutos();
         mostrarProdutos();
     } catch (error) {
         console.error("Erro na venda:", error);
         alert("Houve um erro ao processar a venda.");
+    }
+}
+
+/* --- FUNÇÕES PARA GESTÃO DE CONTAS DE PAGAMENTO --- */
+
+async function carregarContasPagamento() {
+    try {
+        const resposta = await apiFetch(`${API_BASE_URL}/contas-pagamento?idEmpreendimento=${idEmpreendimentoAtual}`);
+        const contas = await resposta.json();
+        const corpoTabela = document.getElementById('corpoContasPagamento');
+        corpoTabela.innerHTML = "";
+
+        if (!Array.isArray(contas) || contas.length === 0) {
+            corpoTabela.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #666;">Nenhuma conta de pagamento cadastrada.</td></tr>`;
+            return;
+        }
+
+        contas.forEach(c => {
+            corpoTabela.innerHTML += `
+                <tr>
+                    <td>${c.nomeBanco}</td>
+                    <td>${c.agencia}</td>
+                    <td>${c.conta}</td>
+                    <td>${c.tipoConta}</td>
+                    <td>${c.pixChave || 'N/A'}</td>
+                    <td>${c.ativaConta ? '✅ Ativa' : '❌ Inativa'}</td>
+                    <td>${c.ativaPix ? '✅ Ativa' : '❌ Inativa'}</td>
+                    <td>
+                        <button class="btn-editar" onclick='abrirModalContaPagamento(${JSON.stringify(c)})'>Editar</button>
+                        <button onclick='deletarContaPagamento(${c.idConta})'>Excluir</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (erro) {
+        console.error("Erro ao carregar contas de pagamento:", erro);
+        alert("Falha ao carregar contas de pagamento: " + erro.message);
+    }
+}
+
+function abrirModalContaPagamento(conta = null) {
+    document.getElementById('modalContaPagamento').style.display = 'block';
+    document.getElementById('formContaPagamento').reset(); // Limpa o formulário
+    document.getElementById('contaId').value = ""; // Garante que o ID esteja vazio para nova conta
+
+    if (conta) {
+        document.getElementById('modalContaPagamentoTitulo').innerText = "Editar Conta de Pagamento";
+        document.getElementById('contaId').value = conta.idConta;
+        document.getElementById('nomeBanco').value = conta.nomeBanco;
+        document.getElementById('agencia').value = conta.agencia;
+        document.getElementById('conta').value = conta.conta;
+        document.getElementById('tipoConta').value = conta.tipoConta;
+        document.getElementById('pixChave').value = conta.pixChave;
+        document.getElementById('ativaConta').checked = conta.ativaConta;
+        document.getElementById('ativaPix').checked = conta.ativaPix;
+    } else {
+        document.getElementById('modalContaPagamentoTitulo').innerText = "Cadastrar Conta de Pagamento";
+        document.getElementById('ativaConta').checked = false; 
+        document.getElementById('ativaPix').checked = false;
+    }
+}
+
+function fecharModalContaPagamento() {
+    document.getElementById('modalContaPagamento').style.display = 'none';
+}
+
+document.getElementById('formContaPagamento').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    let senha = "";
+    const idConta = document.getElementById('contaId').value;
+    if (idConta) {
+        senha = prompt("Confirme sua senha de usuário para salvar alterações financeiras:");
+        if (!senha) return;
+    }
+
+    const conta = {
+        idConta: idConta ? parseInt(idConta) : 0,
+        nomeBanco: document.getElementById('nomeBanco').value,
+        agencia: document.getElementById('agencia').value,
+        conta: document.getElementById('conta').value,
+        tipoConta: document.getElementById('tipoConta').value,
+        pixChave: document.getElementById('pixChave').value,
+        ativaConta: document.getElementById('ativaConta').checked,
+        ativaPix: document.getElementById('ativaPix').checked,
+        idEmpreendimento: parseInt(idEmpreendimentoAtual),
+        senha: senha // Enviado para validação no Java
+    };
+
+    try {
+        await apiFetch(`${API_BASE_URL}/contas-pagamento`, {
+            method: conta.idConta ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(conta)
+        });
+        alert("Conta de pagamento salva com sucesso!");
+        fecharModalContaPagamento();
+        carregarContasPagamento();
+    } catch (erro) {
+        console.error("Erro ao salvar conta de pagamento:", erro);
+        alert("Erro ao salvar conta de pagamento: " + erro.message);
+    }
+});
+
+async function deletarContaPagamento(idConta) {
+    const senha = prompt("Confirme sua senha de usuário para EXCLUIR esta conta:");
+    if (!senha) return;
+
+    if (confirm("Esta ação não pode ser desfeita. Excluir conta?")) {
+        try {
+            await apiFetch(`${API_BASE_URL}/contas-pagamento/${idConta}?idEmpreendimento=${idEmpreendimentoAtual}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ senha: senha })
+            });
+            alert("Conta de pagamento excluída com sucesso!");
+            carregarContasPagamento();
+        } catch (erro) {
+            console.error("Erro ao excluir conta de pagamento:", erro);
+            alert("Erro ao excluir conta de pagamento: " + erro.message);
+        }
     }
 }

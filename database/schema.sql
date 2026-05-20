@@ -86,9 +86,43 @@ CREATE TABLE estoque (
                          FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento)
 );
 
+CREATE TABLE IF NOT EXISTS contaPagamento (
+    idConta INT AUTO_INCREMENT PRIMARY KEY,
+    nomeBanco VARCHAR(100) NOT NULL,
+    agencia VARCHAR(20) NOT NULL,
+    conta VARCHAR(50) NOT NULL,
+    tipoConta VARCHAR(50) NOT NULL,
+    pixChave VARCHAR(255),
+    ativa BOOLEAN DEFAULT TRUE,
+    idEmpreendimento INT NOT NULL,
+    FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento),
+    -- Impede a duplicação dos mesmos dados bancários para o mesmo empreendimento
+    UNIQUE KEY uk_conta_empreendimento (nomeBanco, agencia, conta, idEmpreendimento)
+);
+
 -- INDEX: Para otimizar a barra de pesquisa (Nome, Categoria, ID)
 CREATE INDEX idx_produto_nome ON produto(nome);
 CREATE INDEX idx_categoria_nome ON categoria(nome);
 CREATE INDEX idx_venda_data ON venda(dataVenda);
 
 ALTER TABLE categoria ADD CONSTRAINT fk_categoria_empreendimento FOREIGN KEY (idEmpreendimento) REFERENCES empreendimento(idEmpreendimento) ON DELETE CASCADE;
+
+DELIMITER //
+
+CREATE TRIGGER after_empreendimento_insert
+AFTER INSERT ON empreendimento
+FOR EACH ROW
+BEGIN
+    INSERT INTO categoria (nome, idEmpreendimento, idCategoriaPai) VALUES 
+    ('Eletrônicos', NEW.idEmpreendimento, NULL),
+    ('Vestuário', NEW.idEmpreendimento, NULL),
+    ('Alimentos', NEW.idEmpreendimento, NULL),
+    ('Limpeza', NEW.idEmpreendimento, NULL),
+    ('Serviços', NEW.idEmpreendimento, NULL);
+END //
+
+DELIMITER ;
+
+ALTER TABLE contaPagamento DROP COLUMN ativa;
+ALTER TABLE contaPagamento ADD COLUMN ativaConta BOOLEAN DEFAULT FALSE;
+ALTER TABLE contaPagamento ADD COLUMN ativaPix BOOLEAN DEFAULT FALSE;

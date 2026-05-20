@@ -4,7 +4,10 @@ import com.meuprojeto.dao.CategoriaDAO;
 import com.meuprojeto.dao.VendaDAO;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.dao.UsuarioDAO;
+import com.meuprojeto.dao.ContaPagamentoDAO;
 import com.meuprojeto.model.Categoria;
+import com.meuprojeto.model.ContaPagamento;
+import com.meuprojeto.config.AppConfig;
 import com.meuprojeto.factory.ConnectionFactory;
 import com.meuprojeto.model.DashboardDTO;
 import com.meuprojeto.model.Venda;
@@ -39,6 +42,7 @@ public class AppRest {
         VendaDAO vendaDAO = new VendaDAO();
         UsuarioDAO usuarioDAO = new UsuarioDAO();
         CategoriaDAO categoriaDAO = new CategoriaDAO();
+        ContaPagamentoDAO contaPagamentoDAO = new ContaPagamentoDAO();
 
         // Inicializa o Javalin e configura a pasta de arquivos web 
         var app = Javalin.create(config -> {
@@ -254,6 +258,86 @@ public class AppRest {
             ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
         });
 
+        // Rota para o Front-end buscar configurações de pagamento (chave PIX ativa)
+        app.get("/api/config/pagamento", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
+            String idEmpreendimentoStr = ctx.queryParam("idEmpreendimento");
+            if (idEmpreendimentoStr == null || idEmpreendimentoStr.isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
+                return;
+            }
+            int idEmpreendimento = Integer.parseInt(idEmpreendimentoStr);
+            requireEmpreendimentoOwner(idUsuario, idEmpreendimento);
+
+            String pixChave = contaPagamentoDAO.buscarPixChaveAtiva(idEmpreendimento);
+            ctx.json(Map.of("pixChave", pixChave != null ? pixChave : "Chave PIX não configurada ou ativa."));
+        });
+
+        // --- 💳 GRUPO: CONTAS DE PAGAMENTO ---
+
+        app.get("/api/contas-pagamento", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
+            String idEmpreendimentoStr = ctx.queryParam("idEmpreendimento");
+            if (idEmpreendimentoStr == null || idEmpreendimentoStr.isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
+                return;
+            }
+            int idEmpreendimento = Integer.parseInt(idEmpreendimentoStr);
+            requireEmpreendimentoOwner(idUsuario, idEmpreendimento);
+            ctx.json(contaPagamentoDAO.listarPorEmpreendimento(idEmpreendimento));
+        });
+
+        app.post("/api/contas-pagamento", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
+            ContaPagamento conta = ctx.bodyAsClass(ContaPagamento.class);
+            requireEmpreendimentoOwner(idUsuario, conta.getIdEmpreendimento());
+            // Por padrão, novas contas nascem inativas
+            conta.setAtivaConta(false);
+            conta.setAtivaPix(false);
+            contaPagamentoDAO.salvar(conta);
+            ctx.status(201).json(conta);
+        });
+
+        app.put("/api/contas-pagamento", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String senha = (String) body.get("senha");
+            
+            if (senha == null || !usuarioDAO.senhaConfere(idUsuario, senha)) {
+                ctx.status(401).json(Map.of("erro", "Senha incorreta para alterar dados financeiros."));
+                return;
+            }
+
+            // Converte o restante do mapa para o objeto ContaPagamento
+            ContaPagamento conta = ctx.bodyAsClass(ContaPagamento.class);
+            requireEmpreendimentoOwner(idUsuario, conta.getIdEmpreendimento());
+            contaPagamentoDAO.atualizar(conta);
+            ctx.json(conta);
+        });
+
+        app.delete("/api/contas-pagamento/{id}", ctx -> {
+            int idUsuario = requireAuthenticatedUser(ctx);
+            int idConta = Integer.parseInt(ctx.pathParam("id"));
+            String idEmpreendimentoStr = ctx.queryParam("idEmpreendimento");
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String senha = (String) body.get("senha");
+
+            if (idEmpreendimentoStr == null || idEmpreendimentoStr.isBlank()) {
+                ctx.status(400).json(Map.of("erro", "Informe o empreendimento."));
+                return;
+            }
+            
+            if (senha == null || !usuarioDAO.senhaConfere(idUsuario, senha)) {
+                ctx.status(401).json(Map.of("erro", "Senha incorreta para excluir dados financeiros."));
+                return;
+            }
+
+            int idEmpreendimento = Integer.parseInt(idEmpreendimentoStr);
+            requireEmpreendimentoOwner(idUsuario, idEmpreendimento);
+            contaPagamentoDAO.deletar(idConta, idEmpreendimento);
+            ctx.result("Conta de pagamento removida com sucesso");
+        });
+
         // Registra uma nova venda concluída
         app.post("/api/vendas", ctx -> {
             int idUsuario = requireAuthenticatedUser(ctx);
@@ -376,7 +460,8 @@ public class AppRest {
                     }
 
                     try (PreparedStatement pstm = conn.prepareStatement(
-                            "INSERT INTO empreendimento (nome, CNPJ, idUsuario, idEndereco) VALUES (?, ?, ?, ?)")) {
+                            "INSERT INTO empreendimento (nome, CNPJ, idUsuario, idEndereco) VALUES (?, ?, ?, ?)",
+                            Statement.RETURN_GENERATED_KEYS)) {
                         pstm.setString(1, nome);
                         pstm.setString(2, cnpj);
                         pstm.setInt(3, idUsuario);
@@ -738,4 +823,5 @@ public class AppRest {
             }
         }
     }
+
 }

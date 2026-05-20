@@ -4,6 +4,7 @@ import com.meuprojeto.config.AppConfig;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
 import java.sql.Connection;
+import com.meuprojeto.dao.EmpreendimentoDAO;
 import java.sql.DriverManager;
 import java.util.List;
 
@@ -15,9 +16,9 @@ import java.util.List;
  */
 public class ConnectionFactory {
 
-    private static final String DEV_DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db";
-    private static final String DEV_DATABASE_USER = "gestor_dev";
-    private static final String DEV_DATABASE_PASSWORD = "";
+    private static final String DEV_DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    private static final String DEV_DATABASE_USER = "root";
+    private static final String DEV_DATABASE_PASSWORD = "Game@9847";
 
     /**
      * MÃ‰TODO: criarConexao
@@ -32,6 +33,8 @@ public class ConnectionFactory {
         String username = AppConfig.envOrDevFallback("DB_USER", DEV_DATABASE_USER);
         String password = AppConfig.envOrDevFallback("DB_PASSWORD", DEV_DATABASE_PASSWORD);
 
+        System.out.println("Tentando conectar ao banco com usuario: " + username + " na URL: " + databaseUrl);
+
         return DriverManager.getConnection(databaseUrl, username, password);
     }
 
@@ -41,6 +44,11 @@ public class ConnectionFactory {
      * vocÃª, desenvolvedor, testar as funÃ§Ãµes do ProdutoDAO sem precisar abrir o navegador.
      */
     public static void main(String[] args) {
+        // --- PASSO ZERO: CRIAR UM EMPREENDIMENTO ---
+        // Como o banco usa chaves estrangeiras, o ID 1 precisa existir.
+        EmpreendimentoDAO empDao = new EmpreendimentoDAO();
+        int idEmp = empDao.salvar("Loja Matriz Teste", "12.345.678/0001-99");
+
         ProdutoDAO dao = new ProdutoDAO();
 
         // --- TESTE 1: CRIAR PRODUTO ---
@@ -49,15 +57,15 @@ public class ConnectionFactory {
         p1.setPrecoCusto(50.00);
         p1.setPrecoVenda(120.00);
         p1.setQuantidade(20);
-        p1.setIdEmpreendimento(1);
+        p1.setIdEmpreendimento(idEmp > 0 ? idEmp : 1);
 
         dao.salvar(p1);
         System.out.println("âœ… Teste de Cadastro finalizado.");
 
         // --- TESTE 2: LISTAR PRODUTOS ---
         // Passamos o ID 1 para simular a visualizaÃ§Ã£o da Loja 1
-        System.out.println("--- LISTA DA LOJA 1 ---");
-        List<Produto> lista = dao.listar(1);
+        System.out.println("--- LISTA DA LOJA " + (idEmp > 0 ? idEmp : 1) + " ---");
+        List<Produto> lista = dao.listar(idEmp > 0 ? idEmp : 1);
 
         int idEncontrado = 0;
         for (Produto p : lista) {
