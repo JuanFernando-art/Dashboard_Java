@@ -1,12 +1,13 @@
 package com.meuprojeto.factory;
 
-import com.meuprojeto.config.AppConfig;
-import com.meuprojeto.dao.ProdutoDAO;
-import com.meuprojeto.model.Produto;
 import java.sql.Connection;
-import com.meuprojeto.dao.EmpreendimentoDAO;
 import java.sql.DriverManager;
 import java.util.List;
+
+import com.meuprojeto.config.AppConfig;
+import com.meuprojeto.dao.EmpreendimentoDAO;
+import com.meuprojeto.dao.ProdutoDAO;
+import com.meuprojeto.model.Produto;
 
 /**
  * CLASSE: ConnectionFactory
@@ -18,7 +19,7 @@ public class ConnectionFactory {
 
     private static final String DEV_DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String DEV_DATABASE_USER = "root";
-    private static final String DEV_DATABASE_PASSWORD = "Game@9847";
+    private static final String DEV_DATABASE_PASSWORD = "";
 
     /**
      * MÃ‰TODO: criarConexao

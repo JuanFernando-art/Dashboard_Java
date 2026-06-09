@@ -1,4 +1,4 @@
-﻿﻿-- drop database estoque_db;
+﻿-- drop database estoque_db;
 
 CREATE DATABASE IF NOT EXISTS estoque_db;
 USE estoque_db;
@@ -114,11 +114,11 @@ AFTER INSERT ON empreendimento
 FOR EACH ROW
 BEGIN
     INSERT INTO categoria (nome, idEmpreendimento, idCategoriaPai) VALUES 
-    ('Eletrônicos', NEW.idEmpreendimento, NULL),
-    ('Vestuário', NEW.idEmpreendimento, NULL),
+    ('Eletronicos', NEW.idEmpreendimento, NULL),
+    ('Vestuario', NEW.idEmpreendimento, NULL),
     ('Alimentos', NEW.idEmpreendimento, NULL),
     ('Limpeza', NEW.idEmpreendimento, NULL),
-    ('Serviços', NEW.idEmpreendimento, NULL);
+    ('Servicos', NEW.idEmpreendimento, NULL);
 END //
 
 DELIMITER ;
