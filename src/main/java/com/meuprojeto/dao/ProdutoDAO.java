@@ -8,28 +8,15 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * CLASSE: ProdutoDAO
- * FUNÇÃO: É o cérebro que gerencia o estoque físico e os dados comerciais dos produtos.
- * EXPLICAÇÃO PARA O FRONT-END: Diferente de um sistema simples, aqui o produto existe em uma tabela 
- * e a quantidade existe em outra (estoque). Isso permite que o mesmo produto tenha quantidades 
- * diferentes em lojas diferentes.
- */
+// Gerencia as operações de banco de dados para produtos e estoque
 public class ProdutoDAO {
 
-    /**
-     * MÉTODO: salvar
-     * OBJETIVO: Realiza um salvamento duplo. Primeiro cria o produto e depois vincula a 
-     * quantidade inicial ao empreendimento logado.
-     */
+    // Registra um novo produto e vincula seu estoque inicial ao empreendimento
     public void salvar(Produto produto) {
-        // SQL para as duas tabelas distintas
         String sqlProduto = "INSERT INTO produto (nome, valor_venda, valor_custo, idCategoria) VALUES (?, ?, ?, ?)";
         String sqlEstoque = "INSERT INTO estoque (quantidadeEstoque, quantidadeInicial, idProduto, idEmpreendimento) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.criarConexao()) {
-            // 1. SALVAMENTO DO PRODUTO: 
-            // RETURN_GENERATED_KEYS avisa o Java que queremos saber qual ID o MySQL criou para esse produto.
             PreparedStatement pstmP = conn.prepareStatement(sqlProduto, PreparedStatement.RETURN_GENERATED_KEYS);
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
@@ -41,13 +28,10 @@ public class ProdutoDAO {
             }
             pstmP.execute();
 
-            // Pega o ID (chave primária) que o MySQL acabou de gerar
             ResultSet rs = pstmP.getGeneratedKeys();
             if (rs.next()) {
                 int idGerado = rs.getInt(1);
 
-                // 2. SALVAMENTO NO ESTOQUE:
-                // Vincula o produto recém-criado à quantidade informada e ao empreendimento atual.
                 PreparedStatement pstmE = conn.prepareStatement(sqlEstoque);
                 pstmE.setInt(1, produto.getQuantidade());
                 pstmE.setInt(2, produto.getQuantidadeInicial());
@@ -61,17 +45,12 @@ public class ProdutoDAO {
         }
     }
 
-    /**
-     * MÉTODO: listar
-     * OBJETIVO: Retornar a lista de produtos completa, unindo dados de nome/preço com a quantidade.
-     * @param idEmpreendimento Filtra para trazer apenas os itens da loja que o usuário está visualizando.
-     */
+    // Lista produtos de um empreendimento com informações de estoque e categoria
     public List<Produto> listar(int idEmpreendimento) {
-        // O comando JOIN une a tabela 'produto' com a 'estoque' usando o ID em comum.
         String sql = "SELECT p.idProduto, p.nome, p.valor_venda, p.valor_custo, p.idCategoria, c.nome as categoriaNome, " +
                 "e.quantidadeEstoque, e.quantidadeInicial " +
                 "FROM produto p " +
-                "LEFT JOIN categoria c ON p.idCategoria = c.idCategoria " + // Adiciona JOIN com categoria
+                "LEFT JOIN categoria c ON p.idCategoria = c.idCategoria " + 
                 "JOIN estoque e ON p.idProduto = e.idProduto " +
                 "WHERE e.idEmpreendimento = ?";
 
@@ -84,7 +63,6 @@ public class ProdutoDAO {
 
             while (rset.next()) {
                 Produto p = new Produto();
-                // MAPEAMENTO: Extrai os dados do banco e coloca dentro do objeto Java (Model)
                 p.setId(rset.getInt("idProduto"));
                 p.setNome(rset.getString("nome"));
                 p.setPrecoVenda(rset.getDouble("valor_venda"));
@@ -92,7 +70,7 @@ public class ProdutoDAO {
                 p.setIdEmpreendimento(idEmpreendimento);
                 int idCat = rset.getInt("idCategoria");
                 p.setIdCategoria(rset.wasNull() ? null : idCat);
-                p.setCategoriaNome(rset.getString("categoriaNome")); // Define o nome da categoria
+                p.setCategoriaNome(rset.getString("categoriaNome")); 
                 p.setQuantidade(rset.getInt("quantidadeEstoque"));
                 p.setQuantidadeInicial(rset.getInt("quantidadeInicial"));
                 produtos.add(p);
@@ -101,18 +79,12 @@ public class ProdutoDAO {
         return produtos;
     }
 
-    /**
-     * MÉTODO: atualizar
-     * OBJETIVO: Atualiza tanto as informações básicas quanto as quantidades no estoque.
-     */
+    // Atualiza os dados cadastrais do produto e as quantidades em estoque
     public void atualizar(Produto produto) {
-        // Atualiza a "ficha" do produto
         String sqlProd = "UPDATE produto SET nome=?, valor_venda=?, valor_custo=?, idCategoria=? WHERE idProduto=?";
-        // Atualiza a "quantidade" na loja específica
         String sqlEstoque = "UPDATE estoque SET quantidadeEstoque=?, quantidadeInicial=? WHERE idProduto=? AND idEmpreendimento=?";
 
         try (Connection conn = ConnectionFactory.criarConexao()) {
-            // Executa atualização dos dados básicos
             PreparedStatement pstmP = conn.prepareStatement(sqlProd);
             pstmP.setString(1, produto.getNome());
             pstmP.setDouble(2, produto.getPrecoVenda());
@@ -125,7 +97,6 @@ public class ProdutoDAO {
             pstmP.setInt(5, produto.getId());
             pstmP.executeUpdate();
 
-            // Executa atualização das quantidades (incluindo a inicial para correção de relatórios)
             PreparedStatement pstmE = conn.prepareStatement(sqlEstoque);
             pstmE.setInt(1, produto.getQuantidade());
             pstmE.setInt(2, produto.getQuantidadeInicial());
@@ -135,11 +106,7 @@ public class ProdutoDAO {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    /**
-     * MÉTODO: subtrairEstoque
-     * OBJETIVO: Diminuir a quantidade do produto quando uma venda é realizada.
-     * SEGURANÇA: O 'AND quantidadeEstoque >= ?' evita que o estoque fique negativo.
-     */
+    // Deduz a quantidade vendida do estoque garantindo que o saldo não fique negativo
     public void subtrairEstoque(int idProduto, int qtdVendida, int idEmpreendimento) {
         String sql = "UPDATE estoque SET quantidadeEstoque = quantidadeEstoque - ? " +
                 "WHERE idProduto = ? AND idEmpreendimento = ? AND quantidadeEstoque >= ?";
@@ -158,13 +125,8 @@ public class ProdutoDAO {
         }
     }
 
-    /**
-     * MÉTODO: deletar
-     * OBJETIVO: Remover o produto do sistema usando o ID único.
-     */
+    // Remove o produto do banco de dados pelo ID
     public void deletar(int id) {
-        // Atenção: No banco real, as chaves estrangeiras devem estar configuradas
-        // para deletar o estoque automaticamente quando o produto for removido.
         String sql = "DELETE FROM produto WHERE idProduto = ?";
 
         try (Connection conn = ConnectionFactory.criarConexao();
@@ -177,6 +139,7 @@ public class ProdutoDAO {
         }
     }
 
+    // Remove o vínculo de estoque e exclui o produto se ele não possuir outras referências
     public void deletar(int id, int idEmpreendimento) {
         String sqlEstoque = "DELETE FROM estoque WHERE idProduto = ? AND idEmpreendimento = ?";
         String sqlProdutoOrfao = "DELETE FROM produto WHERE idProduto = ? " +

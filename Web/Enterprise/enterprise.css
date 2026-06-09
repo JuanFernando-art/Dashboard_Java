@@ -1,7 +1,7 @@
 * {
   margin: 0;
   padding: 0;
-  box-box: border-box;
+  box-sizing: border-box;
   font-family: "Segoe UI", sans-serif;
 }
 body {
@@ -120,13 +120,13 @@ tr:hover {
 .modal-content {
   background-color: white;
   margin: 5% auto;
-  padding: 30px; /* Aumentei o espaço interno */
+  padding: 30px; 
   border-radius: 12px;
-  width: 450px; /* Aumentei um pouco a largura */
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); /* Sombra para dar profundidade */
+  width: 450px; 
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); 
 }
 
-/* Garante que os inputs não fiquem colados uns nos outros */
+// Estilização de rótulos e campos do formulário de produto
 #formProduto label {
   display: block;
   margin-top: 15px;
@@ -140,7 +140,7 @@ tr:hover {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  box-sizing: border-box; /* Fundamental para o padding não "empurrar" o input pra fora */
+  box-sizing: border-box; 
 }
 .close {
   float: right;
@@ -170,6 +170,31 @@ form select {
   color: white;
   padding: 10px;
   border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+.btn-secondary {
+  background: #858796;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-danger {
+  background: #e74a3b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
   border-radius: 5px;
   cursor: pointer;
 }
@@ -226,7 +251,7 @@ tr {
   background-color: #ffebee;
 }
 
-/* Container principal dos filtros */
+// Layout dos controles de busca e filtragem no topo
 .controle-topo {
   display: flex;
   justify-content: space-between;
@@ -236,7 +261,7 @@ tr {
   padding: 10px 0;
 }
 
-/* Estilo da Barra de Busca */
+// Estilização do campo de pesquisa
 .busca-wrapper {
   flex: 1;
   position: relative;
@@ -259,7 +284,7 @@ tr {
   box-shadow: 0 0 8px rgba(74, 144, 226, 0.2);
 }
 
-/* Estilo do Seletor de Filtro */
+// Estilização dos seletores de filtro
 .filtro-wrapper {
   display: flex;
   align-items: center;
@@ -286,11 +311,11 @@ tr {
   border-color: #4a90e2;
 }
 
-/* Ajuste na Tabela para combinar */
+// Ajustes de espaçamento e cabeçalho da tabela
 table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px; /* Dá um espaçamento entre as linhas */
+  border-spacing: 0 8px; 
 }
 
 thead th {
@@ -301,6 +326,7 @@ thead th {
   padding: 10px;
   text-align: left;
 }
+// Estilização dos itens na lista do PDV
 .item-pdv {
   display: flex;
   justify-content: space-between;
@@ -340,7 +366,7 @@ thead th {
   border-bottom: 1px dashed #ccc;
 }
 
-/* Estilização do botão de remover item do carrinho */
+// Estilização do botão de remoção no carrinho
 .btn-remover-carrinho {
   background-color: #e74a3b;
   color: white;
@@ -357,7 +383,7 @@ thead th {
   background-color: #c0392b;
 }
 
-/* Estilização do input de quantidade no modal de venda */
+// Estilização do campo de quantidade no PDV
 .input-qtd-venda {
   width: 60px;
   padding: 6px;
@@ -371,7 +397,7 @@ thead th {
   border-color: #4e73df;
 }
 
-/* --- Estilos da Árvore de Categorias --- */
+// Componentes da árvore de categorias
 .categoria-item {
   margin-left: 20px;
   border-left: 1px dashed #ccc;
@@ -400,12 +426,10 @@ thead th {
   transition: transform 0.2s;
 }
 
-/* Esconde subcategorias por padrão */
 .subcategorias-container {
   display: none;
 }
 
-/* Mostra subcategorias e rotaciona o ícone quando a classe 'aberto' está presente */
 .categoria-item.aberto > .subcategorias-container {
   display: block;
 }
@@ -433,7 +457,7 @@ thead th {
   background-color: #218838;
 }
 
-/* Estilo para o seletor de categoria no formulário */
+// Estilização do botão de seleção de categoria no cadastro de produto
 .btn-seletor-cat {
   width: 100%;
   padding: 10px;
@@ -448,7 +472,7 @@ thead th {
 }
 
 .text-muted {
-  color: #6c757d; /* Um cinza mais suave */
+  color: #6c757d; 
 }
 
 #linkHomepage {
@@ -463,14 +487,14 @@ thead th {
   text-decoration: none;
 }
 
-/* --- Estilos para a Tabela de Contas de Pagamento --- */
+// Ajustes de largura para a tabela de contas financeiras
 #tabelaContasPagamento th:nth-child(5),
 #tabelaContasPagamento td:nth-child(5) {
-  max-width: 200px; /* Limita a largura da coluna PIX */
-  word-wrap: break-word; /* Quebra a palavra se for muito longa */
+  max-width: 200px; 
+  word-wrap: break-word; 
 }
 
-/* --- Estilos do Modal de Pagamento --- */
+// Estilização das opções de pagamento no fechamento de venda
 .opcoes-pagamento {
   display: grid;
   grid-template-columns: 1fr;

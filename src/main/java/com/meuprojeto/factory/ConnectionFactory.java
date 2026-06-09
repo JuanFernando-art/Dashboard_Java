@@ -9,25 +9,15 @@ import com.meuprojeto.dao.EmpreendimentoDAO;
 import com.meuprojeto.dao.ProdutoDAO;
 import com.meuprojeto.model.Produto;
 
-/**
- * CLASSE: ConnectionFactory
- * FUNÃ‡ÃƒO: Ã‰ o "Portal de ConexÃ£o". Sem esta classe, o sistema nÃ£o acessa o MySQL.
- * EXPLICAÃ‡ÃƒO PARA O FRONT-END: Esta classe guarda as credenciais do banco de dados
- * e fornece a conexÃ£o ativa para que os DAOs possam ler e gravar informaÃ§Ãµes.
- */
+//Esta classe guarda as credenciais do banco de dados 
 public class ConnectionFactory {
 
     private static final String DEV_DATABASE_URL = "jdbc:mysql://localhost:3306/estoque_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String DEV_DATABASE_USER = "root";
     private static final String DEV_DATABASE_PASSWORD = "";
 
-    /**
-     * MÃ‰TODO: criarConexao
-     * OBJETIVO: Tentar abrir uma conexÃ£o com o MySQL usando o Driver JDBC.
-     * @return Uma conexÃ£o ativa pronta para ser usada pelos DAOs.
-     */
-    public static Connection criarConexao() throws Exception {
-        // Carrega o Driver do MySQL na memÃ³ria do Java
+        public static Connection criarConexao() throws Exception {
+    
         Class.forName("com.mysql.cj.jdbc.Driver");
 
         String databaseUrl = AppConfig.envOrDevFallback("DB_URL", DEV_DATABASE_URL);

@@ -1,6 +1,63 @@
-﻿﻿
+﻿﻿﻿﻿
 const API_BASE_URL = 'http://localhost:7000/api';
 
+// Componente para criação de modais de alerta, confirmação e solicitação de senha
+const Dialogos = {
+    _criarEstruturaBase(titulo, conteudo, acaoBotao, textoBotao = "Confirmar", tipo = "primary") {
+        const modalId = 'modal-dinamico-' + Date.now();
+        const html = `
+            <div id="${modalId}" class="modal" style="display: block;">
+                <div class="modal-content">
+                    <span class="close" onclick="document.getElementById('${modalId}').remove()">&times;</span>
+                    <h2 style="margin-bottom: 15px;">${titulo}</h2>
+                    <div class="modal-body">${conteudo}</div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="document.getElementById('${modalId}').remove()">Cancelar</button>
+                        <button class="btn-${tipo}" id="btn-confirmar-${modalId}">${textoBotao}</button>
+                    </div>
+                </div>
+            </div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modal = document.getElementById(modalId);
+        const btn = document.getElementById(`btn-confirmar-${modalId}`);
+        
+        btn.onclick = () => {
+            const input = modal.querySelector('input');
+            const valor = input ? input.value : true;
+            if (input && !valor) {
+                input.style.borderColor = 'red';
+                return;
+            }
+            acaoBotao(valor);
+            modal.remove();
+        };
+    },
+
+    alerta(mensagem, titulo = "Aviso") {
+        this._criarEstruturaBase(titulo, `<p>${mensagem}</p>`, () => {}, "Entendido");
+        setTimeout(() => {
+            const modal = document.body.lastElementChild;
+            modal.querySelector('.btn-secondary').remove();
+        }, 10);
+    },
+
+    confirmar(mensagem, callback, titulo = "Confirmação") {
+        this._criarEstruturaBase(titulo, `<p>${mensagem}</p>`, callback);
+    },
+
+    perguntaSenha(mensagem, callback, titulo = "Segurança") {
+        const conteudo = `
+            <p style="margin-bottom: 10px;">${mensagem}</p>
+            <input type="password" id="campo-senha-dialogo" placeholder="Sua senha" 
+                   style="width:100%; padding:10px; border:1px solid #ddd; border-radius:5px;">`;
+        this._criarEstruturaBase(titulo, conteudo, callback, "Validar e Prosseguir", "primary");
+        
+        setTimeout(() => document.getElementById('campo-senha-dialogo').focus(), 50);
+    }
+};
+
+// Remove os dados da sessão e redireciona para o login
 function logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('idUsuario');
@@ -10,6 +67,7 @@ function logout() {
     window.location.href = '/index.html';
 }
 
+// Realiza chamadas à API injetando o token de autorização
 async function apiFetch(url, options = {}) {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -36,10 +94,7 @@ async function apiFetch(url, options = {}) {
     return response;
 }
 
-/**
- * Atualiza o cabeçalho da sidebar para mostrar o nome da Loja
- * e configura o link de retorno para a homepage.
- */
+// Configura os elementos visuais da sidebar baseados no empreendimento atual
 async function carregarCabecalhoSidebar() {
     const idEmpreendimento = localStorage.getItem('idEmpreendimento');
     const labelDisplay = document.getElementById('usuarioLogado');
@@ -52,21 +107,17 @@ async function carregarCabecalhoSidebar() {
         return;
     }
 
-    // Altera o texto de apoio (ex: de "Bem-vindo" para "Loja:")
     if (labelApoio) labelApoio.innerText = "Empreendimento:";
 
-    // Primeiro, tentamos mostrar o que está no cache para não ficar vazio
     const nomeCache = localStorage.getItem('nomeEmpreendimento');
     if (labelDisplay) labelDisplay.innerText = nomeCache || 'Carregando...';
 
-    // Agora "puxamos do banco" via API para garantir que o nome esteja correto
     if (idEmpreendimento) {
         try {
             const response = await apiFetch(`${API_BASE_URL}/empreendimentos/${idEmpreendimento}`);
             if (response.ok) {
                 const dados = await response.json();
                 if (labelDisplay) labelDisplay.innerText = dados.nome;
-                // Atualizamos o cache para futuras cargas rápidas
                 localStorage.setItem('nomeEmpreendimento', dados.nome);
             }
         } catch (error) {
@@ -74,14 +125,12 @@ async function carregarCabecalhoSidebar() {
         }
     }
 
-    // Transforma o link de Logout em Voltar
     if (linkAcao) {
         linkAcao.innerText = "Voltar para Homepage";
         linkAcao.href = "../Homepage/homepage.html";
-        linkAcao.onclick = null; // Remove a chamada da função logout()
+        linkAcao.onclick = null; 
     }
 
-    // Altera o nome na barra lateral para "Categorias Personalizadas"
     if (linkCategorias) {
         linkCategorias.innerText = "Categorias Personalizadas";
     }
@@ -89,6 +138,7 @@ async function carregarCabecalhoSidebar() {
 
 carregarCabecalhoSidebar();
 
+// Configura o comportamento do botão de retorno
 function configurarRetornoHomepage() {
     const linkHomepage = document.getElementById('linkHomepage');
     if (!linkHomepage) return;
@@ -101,6 +151,7 @@ function configurarRetornoHomepage() {
 
 configurarRetornoHomepage();
 
+// Valida se o ID do empreendimento está presente na sessão
 function carregarEmpreendimentoDaSessao() {
     const idEmpreendimento = localStorage.getItem('idEmpreendimento');
     if (!idEmpreendimento) {
@@ -116,6 +167,7 @@ const produtosUrl = idEmpreendimentoAtual
     ? `${API_BASE_URL}/produtos?idEmpreendimento=${idEmpreendimentoAtual}`
     : null;
 
+// Busca e renderiza a lista de produtos na tabela principal
 async function carregarProdutos() {
     if (!produtosUrl) return;
 
@@ -161,7 +213,6 @@ async function carregarProdutos() {
 
         corpoTabela.innerHTML = htmlProdutos;
         
-        // Adiciona listeners para os botões de editar para evitar problemas com JSON no HTML
         document.querySelectorAll('.btn-editar').forEach(btn => {
             btn.onclick = () => {
                 const id = btn.getAttribute('data-id');
@@ -175,28 +226,31 @@ async function carregarProdutos() {
     }
 }
 
-// Inicia a busca
 carregarProdutos();
 
+// Controla a abertura do modal de produtos
 function abrirModal() {
     document.getElementById('modalTitulo').innerText = "Cadastrar Produto";
     document.getElementById('modalProduto').style.display = 'block';
     limparSelecaoCategoria();
 }
 
+// Controla o fechamento do modal de produtos
 function fecharModal() {
     document.getElementById('modalProduto').style.display = 'none';
     document.getElementById('formProduto').reset();
     document.getElementById('prodId').value = "";
 }
 
+// Solicita confirmação e remove um produto
 async function deletarProduto(id) {
-    if (confirm("Tem certeza que deseja excluir este produto?")) {
+    Dialogos.confirmar("Tem certeza que deseja excluir este produto? Esta ação é irreversível.", async () => {
         await apiFetch(`${API_BASE_URL}/produtos/${id}?idEmpreendimento=${idEmpreendimentoAtual}`, { method: 'DELETE' });
         carregarProdutos();
-    }
+    }, "Excluir Produto");
 }
 
+// Carrega os dados de um produto no formulário para edição
 async function prepararEdicao(p) {
     abrirModal();
     document.getElementById('modalTitulo').innerText = "Editar Produto";
@@ -215,6 +269,7 @@ async function prepararEdicao(p) {
     validarLimite();
 }
 
+// Localiza e exibe o caminho hierárquico da categoria selecionada na edição
 async function configurarCategoriaEdicao(idCategoria) {
     const resp = await apiFetch(`${API_BASE_URL}/categorias`);
     const categorias = await resp.json();
@@ -222,6 +277,7 @@ async function configurarCategoriaEdicao(idCategoria) {
     definirCategoriaSelecionada(idCategoria, caminho);
 }
 
+// Processa o envio do formulário de produto (Criação ou Atualização)
 document.getElementById('formProduto').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -248,6 +304,7 @@ document.getElementById('formProduto').addEventListener('submit', async (e) => {
     carregarProdutos();
 });
 
+// Filtra as linhas da tabela de produtos por texto e status de estoque
 function filtrarTabela() {
     const termo = document.getElementById('inputBusca').value.toLowerCase();
     const filtroStatus = document.getElementById('filtroEstoque').value;
@@ -267,6 +324,7 @@ function filtrarTabela() {
     });
 }
 
+// Valida se a quantidade atual não excede o limite inicial configurado
 function validarLimite() {
     const qtd = parseInt(document.getElementById('quantidade').value) || 0;
     const limite = parseInt(document.getElementById('quantidadeInicial').value) || 0;
@@ -287,6 +345,7 @@ function validarLimite() {
 let carrinho = [];
 let todosOsProdutos = [];
 
+// Inicializa o modal de Ponto de Venda e carrega o catálogo de produtos
 async function abrirModalPDV() {
     document.getElementById('modalPDV').style.display = 'block';
     carrinho = [];
@@ -297,6 +356,7 @@ async function abrirModalPDV() {
     renderizarListaProdutosPDV(todosOsProdutos);
 }
 
+// Gera o HTML da lista de produtos selecionáveis no PDV
 function renderizarListaProdutosPDV(lista) {
     const div = document.getElementById('listaProdutosPDV');
     div.innerHTML = lista.map(p => `
@@ -313,23 +373,25 @@ function renderizarListaProdutosPDV(lista) {
     `).join('');
 }
 
+// Realiza a busca textual no catálogo do PDV
 function filtrarPDV() {
     const termo = document.getElementById('buscaPDV').value.toLowerCase();
     const filtrados = todosOsProdutos.filter(p => p.nome.toLowerCase().includes(termo));
     renderizarListaProdutosPDV(filtrados);
 }
 
+// Adiciona um produto e sua quantidade ao carrinho virtual
 function adicionarAoCarrinho(produto) {
     const inputQtd = document.getElementById(`qtd-pdv-${produto.id}`);
     const quantidadeDesejada = parseInt(inputQtd.value) || 0;
 
-    if (quantidadeDesejada <= 0) return alert("Informe uma quantidade válida.");
+    if (quantidadeDesejada <= 0) return Dialogos.alerta("Informe uma quantidade válida.");
 
     const itemNoCarrinho = carrinho.find(item => item.id === produto.id);
     const qtdAtualNoCarrinho = itemNoCarrinho ? itemNoCarrinho.quantidadeCarrinho : 0;
 
     if (qtdAtualNoCarrinho + quantidadeDesejada > produto.quantidade) {
-        return alert("Limite de estoque atingido ou quantidade superior ao disponível!");
+        return Dialogos.alerta("Limite de estoque atingido ou quantidade superior ao disponível!");
     }
 
     if (itemNoCarrinho) {
@@ -339,9 +401,10 @@ function adicionarAoCarrinho(produto) {
     }
 
     renderizarCarrinho();
-    inputQtd.value = 1; // Reseta o input após adicionar
+    inputQtd.value = 1; 
 }
 
+// Renderiza os itens do carrinho e calcula o valor total da venda
 function renderizarCarrinho() {
     const container = document.getElementById('itensCarrinho');
     let totalVenda = 0;
@@ -360,11 +423,13 @@ function renderizarCarrinho() {
     document.getElementById('totalVenda').innerText = `Total: R$ ${totalVenda.toFixed(2)}`;
 }
 
+// Remove um item específico do carrinho pelo índice
 function removerDoCarrinho(index) {
     carrinho.splice(index, 1);
     renderizarCarrinho();
 }
 
+// Busca e exibe o histórico de vendas realizadas
 async function carregarHistoricoVendas() {
     try {
         const resposta = await apiFetch(`${API_BASE_URL}/vendas?idEmpreendimento=${idEmpreendimentoAtual}`);
@@ -389,35 +454,41 @@ async function carregarHistoricoVendas() {
     }
 }
 
+// Atualiza a classe visual de link ativo na navegação lateral
 function atualizarLinkAtivo(id) {
     document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
     const link = document.getElementById(id);
     if (link) link.classList.add('active');
 }
 
+// Exibe a seção de gestão de estoque
 function mostrarProdutos() {
     atualizarLinkAtivo('linkEstoque');
     toggleSecao('secaoProdutos');
 }
 
+// Exibe a seção de histórico de vendas
 function mostrarVendas() {
     atualizarLinkAtivo('linkVendas');
     toggleSecao('secaoVendas');
     carregarHistoricoVendas();
 }
 
+// Exibe a seção de categorias
 function mostrarCategorias() {
     atualizarLinkAtivo('linkCategorias');
     toggleSecao('secaoCategorias');
     carregarCategorias();
 }
 
+// Exibe a seção financeira e contas de pagamento
 function mostrarFinanceiro() {
     atualizarLinkAtivo('linkFinanceiro');
     toggleSecao('secaoFinanceiro');
     carregarContasPagamento();
 }
 
+// Alterna a visibilidade entre os diferentes painéis do dashboard
 function toggleSecao(idAtiva) {
     const secoes = ['secaoProdutos', 'secaoVendas', 'secaoCategorias', 'secaoFinanceiro'];
     secoes.forEach(id => {
@@ -426,6 +497,7 @@ function toggleSecao(idAtiva) {
     });
 }
 
+// Carrega e renderiza a árvore de categorias
 async function carregarCategorias() {
     try {
         const resp = await apiFetch(`${API_BASE_URL}/categorias?idEmpreendimento=${idEmpreendimentoAtual}`);
@@ -436,10 +508,11 @@ async function carregarCategorias() {
         }
     } catch (e) { 
         console.error("Erro ao carregar categorias:", e);
-        alert("Falha ao carregar categorias: " + e.message);
+        Dialogos.alerta("Falha ao carregar categorias: " + e.message);
     }
 }
 
+// Função recursiva para gerar a estrutura visual da árvore de categorias
 function renderizarArvore(lista, paiId, nivel) {
     const filtradas = lista.filter(c => (paiId === null ? !c.idCategoriaPai : c.idCategoriaPai === paiId));
     if (filtradas.length === 0) return "";
@@ -465,8 +538,7 @@ function renderizarArvore(lista, paiId, nivel) {
     }).join('');
 }
 
-/** --- SELEÇÃO DE CATEGORIA PARA PRODUTO --- **/
-
+// Abre o modal para seleção de categoria no cadastro de produtos
 async function abrirModalSelecaoCategoria() {
     document.getElementById('modalSelecaoCategoria').style.display = 'block';
     const resp = await apiFetch(`${API_BASE_URL}/categorias?idEmpreendimento=${idEmpreendimentoAtual}`);
@@ -475,10 +547,12 @@ async function abrirModalSelecaoCategoria() {
     container.innerHTML = renderizarArvoreSelecao(categorias, null, 1, categorias);
 }
 
+// Fecha o modal de seleção de categoria
 function fecharModalSelecaoCategoria() {
     document.getElementById('modalSelecaoCategoria').style.display = 'none';
 }
 
+// Função recursiva para renderizar a árvore no modal de seleção
 function renderizarArvoreSelecao(lista, paiId, nivel, listaCompleta) {
     const filtradas = lista.filter(c => (paiId === null ? !c.idCategoriaPai : c.idCategoriaPai === paiId));
     return filtradas.map(cat => {
@@ -500,6 +574,7 @@ function renderizarArvoreSelecao(lista, paiId, nivel, listaCompleta) {
     }).join('');
 }
 
+// Reconstrói a string de hierarquia (Ex: Cat A >> Sub B) de uma categoria
 function montarCaminhoCategoria(id, lista) {
     let atual = lista.find(c => c.idCategoria === id);
     let caminho = [atual.nome];
@@ -510,18 +585,20 @@ function montarCaminhoCategoria(id, lista) {
     return caminho.join(' >> ');
 }
 
+// Atribui a categoria escolhida ao produto no formulário
 function definirCategoriaSelecionada(id, texto) {
     document.getElementById('prodIdCategoria').value = id;
     document.getElementById('btnSelecionarCat').innerText = texto;
     fecharModalSelecaoCategoria();
 }
 
+// Remove a categoria associada a um produto no formulário
 function limparSelecaoCategoria() {
     document.getElementById('prodIdCategoria').value = "";
     document.getElementById('btnSelecionarCat').innerText = "Selecionar Categoria...";
 }
 
-
+// Controla a abertura do modal para criação ou edição de categorias
 function abrirModalCategoria(cat = null, paiId = null) {
     document.getElementById('modalCategoria').style.display = 'block';
     document.getElementById('catId').value = cat ? cat.idCategoria : "";
@@ -530,8 +607,10 @@ function abrirModalCategoria(cat = null, paiId = null) {
     document.getElementById('modalCatTitulo').innerText = cat ? "Editar Categoria" : (paiId ? "Nova Subcategoria" : "Nova Categoria");
 }
 
+// Fecha o modal de categorias
 function fecharModalCategoria() { document.getElementById('modalCategoria').style.display = 'none'; }
 
+// Processa o envio do formulário de categorias
 document.getElementById('formCategoria').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -550,22 +629,25 @@ document.getElementById('formCategoria').addEventListener('submit', async (e) =>
         carregarCategorias();
     } catch (erro) {
         console.error("Erro ao salvar categoria:", erro);
-        alert("Erro ao salvar: " + erro.message);
+        Dialogos.alerta("Erro ao salvar: " + erro.message);
     }
 });
 
+// Solicita confirmação e remove uma categoria do sistema
 async function deletarCategoria(id) {
-    if (confirm("Excluir esta categoria removerá todas as suas subcategorias. Continuar?")) {
+    Dialogos.confirmar("Excluir esta categoria removerá todas as suas subcategorias. Continuar?", async () => {
         await apiFetch(`${API_BASE_URL}/categorias/${id}`, { method: 'DELETE' });
         carregarCategorias();
-    }
+    }, "Excluir Categoria");
 }
 
+// Controla o fechamento do modal de formas de pagamento
 function fecharModalPagamento() {
     document.getElementById('modalPagamento').style.display = 'none';
     document.getElementById('infoPix').style.display = 'none';
 }
 
+// Gerencia a seleção da forma de pagamento e exibe dados de PIX se necessário
 async function selecionarPagamento(metodo) {
     if (metodo === 'PIX') {
         try {
@@ -574,73 +656,71 @@ async function selecionarPagamento(metodo) {
             document.getElementById('chavePixTexto').innerText = config.pixChave;
             document.getElementById('infoPix').style.display = 'block';
         } catch (e) {
-            alert("Erro ao buscar chave PIX. Verifique a configuração.");
+            Dialogos.alerta("Erro ao buscar chave PIX. Verifique se existe uma conta com PIX ativo.");
         }
     } else {
         await processarVendaFinal(metodo);
     }
 } 
 
+// Inicia o processo de finalização de venda validando o carrinho
 async function finalizarVenda() {
-    if (carrinho.length === 0) return alert("O carrinho está vazio!");
+    if (carrinho.length === 0) return Dialogos.alerta("O carrinho está vazio!");
     document.getElementById('modalPagamento').style.display = 'block';
 }
 
+// Executa as chamadas de API para registrar a venda e abater o estoque
 async function processarVendaFinal(metodo) {
     const totalVenda = carrinho.reduce((acc, item) => acc + (item.precoVenda * item.quantidadeCarrinho), 0);
     const listaNomes = carrinho.map(item => `${item.nome} (${item.quantidadeCarrinho})`).join(", ");
     
-    if (!confirm(`Confirmar recebimento de R$ ${totalVenda.toFixed(2)} via ${metodo}?`)) {
-        return;
-    }
-    try {
-        const vendaResponse = await apiFetch(`${API_BASE_URL}/vendas`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                idEmpreendimento: parseInt(idEmpreendimentoAtual),
-                total: totalVenda,
-                produtosVendidos: listaNomes,
-                formaPagamento: metodo,
-                itens: carrinho.map(item => ({
-                    idProduto: item.id,
-                    quantidade: item.quantidadeCarrinho,
-                    precoUnitario: item.precoVenda,
-                    precoCustoNoMomento: item.precoCusto
-                }))
-            })
-        });
-
-        if (!vendaResponse.ok) {
-            throw new Error("Nao foi possivel registrar a venda.");
-        }
-
-        for (const item of carrinho) {
-            await apiFetch(`${API_BASE_URL}/produtos/subtrair`, {
+    Dialogos.confirmar(`Confirmar recebimento de R$ ${totalVenda.toFixed(2)} via ${metodo}?`, async () => {
+        try {
+            const vendaResponse = await apiFetch(`${API_BASE_URL}/vendas`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id: item.id,
-                    quantidadeVendida: item.quantidadeCarrinho,
-                    idEmpreendimento: parseInt(idEmpreendimentoAtual)
+                    idEmpreendimento: parseInt(idEmpreendimentoAtual),
+                    total: totalVenda,
+                    produtosVendidos: listaNomes,
+                    formaPagamento: metodo,
+                    itens: carrinho.map(item => ({
+                        idProduto: item.id,
+                        quantidade: item.quantidadeCarrinho,
+                        precoUnitario: item.precoVenda,
+                        precoCustoNoMomento: item.precoCusto
+                    }))
                 })
             });
-        }
 
-        alert("Venda realizada com sucesso!");
-        carrinho = [];
-        document.getElementById('modalPDV').style.display = 'none';
-        fecharModalPagamento();
-        await carregarProdutos();
-        mostrarProdutos();
-    } catch (error) {
-        console.error("Erro na venda:", error);
-        alert("Houve um erro ao processar a venda.");
-    }
+            if (!vendaResponse.ok) throw new Error("Não foi possível registrar a venda.");
+
+            for (const item of carrinho) {
+                await apiFetch(`${API_BASE_URL}/produtos/subtrair`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: item.id,
+                        quantidadeVendida: item.quantidadeCarrinho,
+                        idEmpreendimento: parseInt(idEmpreendimentoAtual)
+                    })
+                });
+            }
+
+            Dialogos.alerta("Venda realizada com sucesso!");
+            carrinho = [];
+            document.getElementById('modalPDV').style.display = 'none';
+            fecharModalPagamento();
+            await carregarProdutos();
+            mostrarProdutos();
+        } catch (error) {
+            console.error("Erro na venda:", error);
+            Dialogos.alerta("Houve um erro ao processar a venda.");
+        }
+    }, "Concluir Venda");
 }
 
-/* --- FUNÇÕES PARA GESTÃO DE CONTAS DE PAGAMENTO --- */
-
+// Busca e renderiza as contas de pagamento do empreendimento
 async function carregarContasPagamento() {
     try {
         const resposta = await apiFetch(`${API_BASE_URL}/contas-pagamento?idEmpreendimento=${idEmpreendimentoAtual}`);
@@ -672,14 +752,15 @@ async function carregarContasPagamento() {
         });
     } catch (erro) {
         console.error("Erro ao carregar contas de pagamento:", erro);
-        alert("Falha ao carregar contas de pagamento: " + erro.message);
+        Dialogos.alerta("Falha ao carregar contas de pagamento: " + erro.message);
     }
 }
 
+// Controla a abertura do modal de cadastro/edição de contas financeiras
 function abrirModalContaPagamento(conta = null) {
     document.getElementById('modalContaPagamento').style.display = 'block';
-    document.getElementById('formContaPagamento').reset(); // Limpa o formulário
-    document.getElementById('contaId').value = ""; // Garante que o ID esteja vazio para nova conta
+    document.getElementById('formContaPagamento').reset(); 
+    document.getElementById('contaId').value = ""; 
 
     if (conta) {
         document.getElementById('modalContaPagamentoTitulo').innerText = "Editar Conta de Pagamento";
@@ -698,64 +779,67 @@ function abrirModalContaPagamento(conta = null) {
     }
 }
 
+// Fecha o modal de contas de pagamento
 function fecharModalContaPagamento() {
     document.getElementById('modalContaPagamento').style.display = 'none';
 }
 
+// Processa o salvamento de contas financeiras exigindo senha para edições
 document.getElementById('formContaPagamento').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    let senha = "";
     const idConta = document.getElementById('contaId').value;
-    if (idConta) {
-        senha = prompt("Confirme sua senha de usuário para salvar alterações financeiras:");
-        if (!senha) return;
-    }
+    
+    const salvarDados = async (senha = "") => {
+        const conta = {
+            idConta: idConta ? parseInt(idConta) : 0,
+            nomeBanco: document.getElementById('nomeBanco').value,
+            agencia: document.getElementById('agencia').value,
+            conta: document.getElementById('conta').value,
+            tipoConta: document.getElementById('tipoConta').value,
+            pixChave: document.getElementById('pixChave').value,
+            ativaConta: document.getElementById('ativaConta').checked,
+            ativaPix: document.getElementById('ativaPix').checked,
+            idEmpreendimento: parseInt(idEmpreendimentoAtual),
+            senha: senha
+        };
 
-    const conta = {
-        idConta: idConta ? parseInt(idConta) : 0,
-        nomeBanco: document.getElementById('nomeBanco').value,
-        agencia: document.getElementById('agencia').value,
-        conta: document.getElementById('conta').value,
-        tipoConta: document.getElementById('tipoConta').value,
-        pixChave: document.getElementById('pixChave').value,
-        ativaConta: document.getElementById('ativaConta').checked,
-        ativaPix: document.getElementById('ativaPix').checked,
-        idEmpreendimento: parseInt(idEmpreendimentoAtual),
-        senha: senha // Enviado para validação no Java
+        try {
+            await apiFetch(`${API_BASE_URL}/contas-pagamento`, {
+                method: conta.idConta ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(conta)
+            });
+            Dialogos.alerta("Conta de pagamento salva com sucesso!");
+            fecharModalContaPagamento();
+            carregarContasPagamento();
+        } catch (erro) {
+            Dialogos.alerta("Erro ao salvar conta: " + erro.message);
+        }
     };
 
-    try {
-        await apiFetch(`${API_BASE_URL}/contas-pagamento`, {
-            method: conta.idConta ? 'PUT' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(conta)
-        });
-        alert("Conta de pagamento salva com sucesso!");
-        fecharModalContaPagamento();
-        carregarContasPagamento();
-    } catch (erro) {
-        console.error("Erro ao salvar conta de pagamento:", erro);
-        alert("Erro ao salvar conta de pagamento: " + erro.message);
+    if (idConta) {
+        Dialogos.perguntaSenha("Confirme sua senha para salvar alterações financeiras:", salvarDados);
+    } else {
+        salvarDados();
     }
 });
 
+// Solicita senha e confirmação para exclusão de conta financeira
 async function deletarContaPagamento(idConta) {
-    const senha = prompt("Confirme sua senha de usuário para EXCLUIR esta conta:");
-    if (!senha) return;
-
-    if (confirm("Esta ação não pode ser desfeita. Excluir conta?")) {
-        try {
-            await apiFetch(`${API_BASE_URL}/contas-pagamento/${idConta}?idEmpreendimento=${idEmpreendimentoAtual}`, { 
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ senha: senha })
-            });
-            alert("Conta de pagamento excluída com sucesso!");
-            carregarContasPagamento();
-        } catch (erro) {
-            console.error("Erro ao excluir conta de pagamento:", erro);
-            alert("Erro ao excluir conta de pagamento: " + erro.message);
-        }
-    }
+    Dialogos.perguntaSenha("Informe sua senha para excluir esta conta permanentemente:", (senha) => {
+        Dialogos.confirmar("Esta ação não pode ser desfeita. Excluir conta?", async () => {
+            try {
+                await apiFetch(`${API_BASE_URL}/contas-pagamento/${idConta}?idEmpreendimento=${idEmpreendimentoAtual}`, { 
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ senha: senha })
+                });
+                Dialogos.alerta("Conta excluída com sucesso!");
+                carregarContasPagamento();
+            } catch (erro) {
+                Dialogos.alerta("Erro ao excluir conta: " + erro.message);
+            }
+        }, "Confirmar Exclusão");
+    });
 }
